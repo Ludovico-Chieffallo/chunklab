@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chunklab"
+version = "0.1.0"
+description = "Find out which chunking strategy actually retrieves your answers best - on your own documents - in 60 seconds."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [{ name = "Ludovico Chieffallo" }]
+keywords = ["rag", "chunking", "retrieval", "evaluation", "embeddings"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Indexing",
+]
+dependencies = [
+    "typer>=0.12",
+    "rich>=13.0",
+    "pydantic>=2.5",
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+    "tiktoken>=0.7",
+    "rapidfuzz>=3.0",
+    "jinja2>=3.1",
+    "langchain-text-splitters>=0.2",
+    "pymupdf4llm>=0.0.17",
+    "python-docx>=1.1",
+    "sentence-transformers>=3.0",
+]
+
+[project.optional-dependencies]
+demo = ["gradio>=4.0"]
+dev = ["pytest>=8.0", "ruff>=0.6", "pre-commit>=3.5"]
+
+[project.scripts]
+chunklab = "chunklab.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/ludovicochieffallo/chunklab"
+
+[tool.hatch.build.targets.wheel]
+packages = ["chunklab"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"chunklab/cli.py" = ["B008"]          # typer.Option in defaults is the Typer idiom
+"chunklab/report/html.py" = ["E501"]  # long lines inside the inline HTML template
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: integration tests that download the real embedding model"]
+addopts = "-m 'not slow'"

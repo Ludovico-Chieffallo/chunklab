@@ -1,0 +1,183 @@
+"""Orchestrates the full evaluation pipeline (spec §3.3)."""
+
+from datetime import UTC, datetime
+from pathlib import Path
+
+from chunklab.chunkers.registry import make_chunker
+from chunklab.config import Config, default_config, load_questions
+from chunklab.diagnostics.chunk_health import compute_chunk_health
+from chunklab.embeddings.registry import make_embedder
+from chunklab.eval import metrics as m
+from chunklab.eval.gold_match import score_question
+from chunklab.loaders.registry import load_documents
+from chunklab.models import Document, EvalReport, Question, StrategyResult
+from chunklab.retrieval.dense import DenseRetriever
+
+
+def _rank_key(result: StrategyResult, ranking_metric: str):
+    primary = getattr(result, ranking_metric)
+    return (
+        -primary,
+        -result.mrr,
+        -result.hit_rate_at_k,
+        result.chunk_health.pct_tiny,
+    )
+
+
+def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scored: int) -> str:
+    if not ranked:
+        return "No strategies were evaluated."
+    best, worst = ranked[0], ranked[-1]
+    metric = config.eval.ranking_metric
+    k = config.retrieval.top_k
+    metric_label = metric.replace("_at_k", f"@{k}").replace("_", " ")
+    params = ", ".join(f"{key}={val}" for key, val in best.config.items())
+
+    lines = [
+        f"Use {best.strategy.upper()} chunking"
+        + (f" ({params})." if params else ".")
+        + f" It gave the best retrieval on your corpus "
+        f"({metric_label} = {getattr(best, metric):.2f})."
+    ]
+
+    if worst.chunk_health.pct_tiny >= 0.30 and worst.strategy != best.strategy:
+        line = (
+            f"{worst.strategy} scored worst ({metric_label} = {getattr(worst, metric):.2f}) "
+            f"with {worst.chunk_health.pct_tiny:.0%} of its chunks under "
+            f"{config.eval.min_floor_tokens} tokens (the fragment trap)."
+        )
+        floored = next((r for r in ranked if r.strategy == "semantic"), None)
+        if worst.strategy == "semantic_no_floor" and floored:
+            delta = getattr(floored, metric) - getattr(worst, metric)
+            if delta > 0:
+                line += f" The floored 'semantic' variant recovered {delta * 100:.0f} points."
+        lines.append(line)
+
+    for r in ranked:
+        n_split = sum(1 for q in r.per_question if q.split_across_chunks)
+        if n_split > 0:
+            lines.append(
+                f"{n_split} of {num_scored} questions had the answer split across two "
+                f"chunks under '{r.strategy}'; increasing overlap or using "
+                f"structure-aware chunking fixes this."
+            )
+            break
+
+    if best.chunk_health.pct_oversized > 0:
+        lines.append(
+            f"Note: {best.chunk_health.pct_oversized:.0%} of {best.strategy} chunks exceed "
+            f"the embedding model's max sequence length and may be truncated at embed time."
+        )
+
+    return " ".join(lines)
+
+
+def run_evaluation(
+    documents: list[Document], questions: list[Question], config: Config
+) -> EvalReport:
+    warnings: list[str] = []
+
+    scored_questions = [q for q in questions if q.gold_snippets]
+    skipped = len(questions) - len(scored_questions)
+    if skipped:
+        warnings.append(
+            f"{skipped} question(s) had no gold snippets and were skipped; "
+            "add gold_snippets to include them in scoring."
+        )
+    if not scored_questions:
+        raise ValueError("no questions with gold snippets - nothing to score")
+
+    embedder = make_embedder(config.embedding.backend, config.embedding.model)
+    doc_map = {d.id: d for d in documents}
+    k = config.retrieval.top_k
+
+    results: list[StrategyResult] = []
+    chunks_by_strategy: dict[str, list] = {}
+    for strategy in config.strategies:
+        chunker = make_chunker(strategy.name, strategy.params, embedder=embedder)
+        chunks = [c for doc in documents for c in chunker.chunk(doc)]
+        if not chunks:
+            warnings.append(f"strategy '{strategy.name}' produced no chunks; skipped.")
+            continue
+        chunks_by_strategy[strategy.name] = chunks
+
+        retriever = DenseRetriever(chunks, embedder)
+        per_question = [
+            score_question(
+                q,
+                retriever.retrieve(q.query, k),
+                strategy.name,
+                config.eval.fuzzy_threshold,
+            )
+            for q in scored_questions
+        ]
+
+        health = compute_chunk_health(
+            chunks,
+            doc_map,
+            min_floor_tokens=config.eval.min_floor_tokens,
+            max_tokens=int(strategy.params.get("max_tokens", 10_000)),
+            embedder_max_seq=embedder.max_seq_tokens,
+        )
+        results.append(
+            StrategyResult(
+                strategy=strategy.name,
+                config=strategy.params,
+                recall_at_k=m.recall_at_k(per_question),
+                hit_rate_at_k=m.hit_rate_at_k(per_question),
+                mrr=m.mrr(per_question),
+                precision_at_k=m.precision_at_k(per_question, k),
+                chunk_health=health,
+                per_question=per_question,
+            )
+        )
+
+    results.sort(key=lambda r: _rank_key(r, config.eval.ranking_metric))
+
+    viz = None
+    if documents and chunks_by_strategy:
+        from chunklab.report.viz import build_doc_viz
+
+        viz = build_doc_viz(documents[0], scored_questions, chunks_by_strategy).model_dump()
+
+    return EvalReport(
+        corpus_summary={
+            "num_documents": len(documents),
+            "documents": [d.id for d in documents],
+            "num_questions": len(questions),
+            "num_scored_questions": len(scored_questions),
+            "embedding_model": config.embedding.model,
+            "top_k": k,
+            "ranking_metric": config.eval.ranking_metric,
+            "queries": {q.id: q.query for q in scored_questions},
+        },
+        strategy_results=results,
+        recommendation=_build_recommendation(results, config, len(scored_questions)),
+        warnings=warnings,
+        generated_at=datetime.now(UTC).isoformat(timespec="seconds"),
+        viz=viz,
+    )
+
+
+def evaluate(
+    docs: str | Path | list[Document],
+    questions: str | Path | list[Question],
+    config: Config | str | Path | None = None,
+) -> EvalReport:
+    """Public API: evaluate chunking strategies over documents and questions.
+
+    `docs` is a path (file or directory) or a list of Documents; `questions` is
+    a YAML path or a list of Questions; `config` is a Config, a YAML path, or
+    None for defaults.
+    """
+    if not isinstance(docs, list):
+        docs = load_documents(docs)
+    if not isinstance(questions, list):
+        questions = load_questions(questions)
+    if config is None:
+        config = default_config()
+    elif not isinstance(config, Config):
+        from chunklab.config import load_config
+
+        config = load_config(config)
+    return run_evaluation(docs, questions, config)

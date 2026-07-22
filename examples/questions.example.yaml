@@ -1,0 +1,88 @@
+questions:
+  - id: q1
+    query: "What is the termination notice period?"
+    gold_snippets:
+      - "written notice at least 30 days prior to termination"
+    tags: [employment]
+  - id: q2
+    query: "How is overtime compensated?"
+    gold_snippets:
+      - "Overtime is paid at 1.5x the regular hourly rate"
+    gold_answer: "1.5x hourly rate"
+    tags: [compensation]
+  - id: q3
+    query: "How long is the probationary period for new employees?"
+    gold_snippets:
+      - "probationary period of ninety days from their start date"
+  - id: q4
+    query: "How many days of paid annual leave do full-time employees get?"
+    gold_snippets:
+      - "twenty-five days of paid annual leave per calendar year"
+  - id: q5
+    query: "What is the data retention period for customer records?"
+    gold_snippets:
+      - "Customer records are retained for seven years"
+  - id: q6
+    query: "How much parental leave are employees entitled to?"
+    gold_snippets:
+      - "sixteen weeks of fully paid parental leave"
+  - id: q7
+    query: "When must security incidents be reported?"
+    gold_snippets:
+      - "reported to the Security team within twenty-four hours of discovery"
+  - id: q8
+    query: "What is the pension match for full-time employees?"
+    gold_snippets:
+      - "| Pension match | 5% of salary | 5% of salary | No |"
+    tags: [benefits, table]
+  - id: q9
+    query: "When are salaries paid?"
+    gold_snippets:
+      - "paid monthly on the last business day of the month"
+  - id: q10
+    query: "What happens to unused sick leave at the end of the year?"
+    gold_snippets:
+      - "Unused sick leave does not carry over and is not paid out on termination"
+  - id: q11
+    query: "What is the company dress code?"
+    # no gold_snippets on purpose -> skipped with a warning in the MVP
+  - id: q12
+    query: "How much is the home office stipend for remote employees?"
+    gold_snippets:
+      - "one-time home office stipend of five hundred dollars"
+    tags: [remote-work]
+  - id: q13
+    query: "What is the per diem meal allowance for international travel?"
+    gold_snippets:
+      - "one hundred dollars per day for international travel"
+    tags: [travel]
+  - id: q14
+    query: "How often are performance reviews held?"
+    gold_snippets:
+      - "Performance reviews are held twice per year, in June and December"
+    tags: [performance]
+  - id: q15
+    query: "How long must a performance improvement plan run for?"
+    gold_snippets:
+      - "a formal performance improvement plan of at least eight weeks"
+    tags: [performance]
+  - id: q16
+    query: "Within how many days must security updates be installed on company devices?"
+    gold_snippets:
+      - "must install security updates within seven days of release"
+    tags: [it]
+  - id: q17
+    query: "How much is the monthly gym reimbursement?"
+    gold_snippets:
+      - "up to thirty dollars per month of gym or fitness subscription costs"
+    tags: [wellbeing]
+  - id: q18
+    query: "Who owns intellectual property created by employees during their employment?"
+    gold_snippets:
+      - "All intellectual property created by employees in the course of their employment"
+    tags: [ip]
+  - id: q19
+    query: "How many days does an employee have to appeal a disciplinary outcome?"
+    gold_snippets:
+      - "appeal a disciplinary outcome in writing within five business days"
+    tags: [disciplinary]

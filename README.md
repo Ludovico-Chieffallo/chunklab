@@ -1,0 +1,162 @@
+# chunklab
+
+> **Find out which chunking strategy actually retrieves your answers best — on your own documents — in 60 seconds.**
+
+[![CI](https://github.com/ludovicochieffallo/chunklab/actions/workflows/ci.yml/badge.svg)](https://github.com/ludovicochieffallo/chunklab/actions)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+When a RAG system gives a wrong answer, the failure is in **retrieval** roughly 70% of the time — not in the LLM. And the single most overlooked variable is **chunking**: how you split documents before embedding them. Benchmarks show a ~15-percentage-point swing in end-to-end answer accuracy between the best and worst chunking strategy on the same corpus — same embedding model, same retriever, *only the chunking changed*.
+
+There is no universal best strategy. The optimal choice depends on **your** documents and **your** questions — so you have to test on your own corpus. `chunklab` makes that a one-command, fully-local, evidence-based decision instead of a guess.
+
+## What it does
+
+You give it your documents and a handful of questions (each tagged with the "gold" passage that answers it). It runs several chunking strategies, indexes and retrieves for each, and tells you **which strategy actually retrieves your answer-bearing text best — and why**.
+
+```
+docs + questions ─▶ [fixed · recursive · semantic · structure] ─▶ ranked report + diagnostics
+```
+
+- **Runs fully locally.** Default embeddings are a small local model (`BAAI/bge-small-en-v1.5`) — no API key, your documents never leave your machine.
+- **Explains itself.** Per-strategy diagnostics (token distribution, % tiny fragments, boundary health, table integrity) tell you *why* a strategy won or lost.
+- **Three outputs:** a console table, a standalone HTML report (per-question drill-down + chunk-boundary visualization), and a machine-readable JSON report for CI.
+
+## Install
+
+```bash
+pip install chunklab
+```
+
+The first run downloads the embedding model (~130 MB) once and caches it.
+
+## 60-second quickstart
+
+```bash
+# clone the repo to get the example corpus, or point --docs at your own files
+chunklab run --docs examples/sample_docs --questions examples/questions.example.yaml
+```
+
+Example console output:
+
+```
+ChunkLab — 1 document, 18 scored questions, top_k=5, model=bge-small-en-v1.5
+
+  Strategy            recall@5   hit@5   MRR    #chunks  med_tok  %tiny  boundary
+▶ structure             1.00     1.00   0.92       26       78    85%     100%
+  recursive             1.00     1.00   0.90        7      456    14%     100%
+  semantic_no_floor     1.00     1.00   0.86        9      348    33%     100%
+  semantic              1.00     1.00   0.84        7      405     0%     100%
+  fixed                 1.00     1.00   0.83        6      512     0%       0%
+
+Recommendation:
+  Use STRUCTURE chunking (max_tokens=800). It gave the best retrieval on your
+  corpus (recall@5 = 1.00).
+
+HTML report: ./chunklab_report/report.html
+```
+
+Open `chunklab_report/report.html` for the full drill-down and the chunk-boundary visualization.
+
+## Writing your `questions.yaml`
+
+The tool scores retrieval offline by checking whether a **gold snippet** — a verbatim (or near-verbatim) passage from your document that answers the question — lands inside a retrieved chunk. Aim for 10–20 questions.
+
+```yaml
+questions:
+  - id: q1
+    query: "What is the termination notice period?"
+    gold_snippets:
+      - "written notice at least 30 days prior to termination"
+    tags: [contracts]
+  - id: q2
+    query: "How is overtime compensated?"
+    gold_snippets:
+      - "Overtime is paid at 1.5x the regular hourly rate"
+  - id: q3
+    query: "What is the dress code?"
+    # no gold_snippets -> skipped (with a warning), so scoring stays deterministic
+```
+
+Tips:
+- Copy the gold snippet **verbatim** from the source so matching is reliable (small drift is absorbed by fuzzy matching, threshold configurable).
+- A question with no `gold_snippets` is skipped in the MVP — add the passage to include it.
+
+## Configuration
+
+`chunklab run` works with no config. To customize, pass `--config config.yaml`:
+
+```yaml
+embedding:
+  backend: local                 # local (default) | openai (coming soon)
+  model: BAAI/bge-small-en-v1.5
+retrieval:
+  mode: dense                    # dense (bm25/hybrid coming soon)
+  top_k: 5
+eval:
+  fuzzy_threshold: 0.90
+  ranking_metric: recall_at_k    # recall_at_k | mrr | hit_rate_at_k
+  min_floor_tokens: 200
+strategies:
+  - { name: fixed,     params: { chunk_size: 512, overlap: 64 } }
+  - { name: recursive, params: { chunk_size: 512, overlap: 64 } }
+  - { name: semantic,  params: { breakpoint_percentile: 95, min_tokens: 200, max_tokens: 1000 } }
+  - { name: structure, params: { max_tokens: 800 } }
+output:
+  formats: [console, html, json]
+  dir: ./chunklab_report
+```
+
+See [`examples/config.example.yaml`](examples/config.example.yaml) for the full default.
+
+### The chunking strategies
+
+| Strategy | What it does |
+|---|---|
+| `fixed` | Fixed-size token windows with overlap. |
+| `recursive` | Recursive split on paragraph → sentence → word separators. |
+| `semantic` | Embedding-based boundaries **with a minimum-size floor** that merges tiny fragments — the fix for the "fragment trap." |
+| `semantic_no_floor` | The naive version, included on purpose to show what the floor prevents. |
+| `structure` | Heading-aware: one chunk per section, sub-split only when oversized. |
+
+Run `chunklab strategies` to list them.
+
+## Python API
+
+```python
+from chunklab import evaluate
+
+report = evaluate(
+    docs="./docs",
+    questions="./questions.yaml",
+    config=None,  # or a path / a Config object
+)
+print(report.recommendation)
+for r in report.strategy_results:      # ranked best-first
+    print(r.strategy, r.recall_at_k, r.mrr)
+```
+
+The `EvalReport` schema is stable — serialize it with `report.model_dump_json()` for CI or dashboards.
+
+## Web demo
+
+```bash
+pip install "chunklab[demo]"
+chunklab demo          # launches a local Gradio app
+```
+
+Upload a document, type a few questions with gold snippets, pick strategies, and see the ranked comparison plus the chunk visualization.
+
+## What this is (and isn't)
+
+**It is** a fast, focused, local pre-flight utility that answers exactly one question: *which chunking strategy retrieves best on my corpus, and why?*
+
+**It is not** a production RAG framework, a vector database, a document parser, or a general LLM-eval platform. It deliberately does one thing well.
+
+## Supported inputs
+
+Documents: **PDF, DOCX, TXT, MD**. Corpora of tens to low-hundreds of documents (this is a pre-flight tool, not a batch pipeline).
+
+## License
+
+[MIT](LICENSE) — permissive on purpose. Runs locally, no telemetry, no phone-home.
