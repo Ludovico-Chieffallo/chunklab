@@ -1,0 +1,29 @@
+name: README example check
+
+# The README quickstart block is generated from a real run. This job re-runs
+# the evaluation (downloads the embedding model) and fails if the committed
+# block has drifted from the current output.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"  # weekly, Monday 06:00 UTC
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -e .
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-bge-small-en-v1.5
+      - name: Verify README block matches a fresh run
+        run: python scripts/regen_readme_example.py --check
