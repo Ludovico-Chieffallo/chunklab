@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "chunklab"
-version = "0.1.0"
+version = "0.2.0"
 description = "Find out which chunking strategy actually retrieves your answers best - on your own documents - in 60 seconds."
 readme = "README.md"
 license = "MIT"
