@@ -9,6 +9,7 @@ import numpy as np
 class Embedder(Protocol):
     model_name: str
     max_seq_tokens: int | None
+    revision: str | None  # model revision/commit hash when resolvable, for provenance
 
     def embed(self, texts: list[str]) -> np.ndarray:
         """Return a unit-normalized (n, d) float32 array."""

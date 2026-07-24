@@ -17,7 +17,8 @@ class DenseRetriever:
         q = self.embedder.embed([query])[0]
         scores = self._matrix @ q
         k = min(top_k, len(self.chunks))
-        top = np.argsort(-scores)[:k]
+        # stable sort so score ties break by chunk order, deterministically
+        top = np.argsort(-scores, kind="stable")[:k]
         return [
             RetrievedChunk(chunk=self.chunks[i], score=float(scores[i]), rank=r + 1)
             for r, i in enumerate(top)
