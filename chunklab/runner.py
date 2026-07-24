@@ -1,8 +1,10 @@
 """Orchestrates the full evaluation pipeline (spec §3.3)."""
 
+import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 
+from chunklab import __version__
 from chunklab.chunkers.registry import make_chunker
 from chunklab.config import Config, default_config, load_questions
 from chunklab.diagnostics.chunk_health import compute_chunk_health
@@ -12,6 +14,26 @@ from chunklab.eval.gold_match import score_question
 from chunklab.loaders.registry import load_documents
 from chunklab.models import Document, EvalReport, Question, StrategyResult
 from chunklab.retrieval.dense import DenseRetriever
+
+
+def _corpus_sha256(documents: list[Document]) -> str:
+    """SHA-256 over (doc_id, text) pairs sorted by doc_id — order-independent."""
+    h = hashlib.sha256()
+    for doc in sorted(documents, key=lambda d: d.id):
+        h.update(doc.id.encode("utf-8"))
+        h.update(b"\x00")
+        h.update(doc.text.encode("utf-8"))
+        h.update(b"\x00")
+    return h.hexdigest()
+
+
+def _questions_sha256(questions: list[Question]) -> str:
+    """SHA-256 over the canonical JSON of each question, sorted by id."""
+    h = hashlib.sha256()
+    for q in sorted(questions, key=lambda q: q.id):
+        h.update(q.model_dump_json().encode("utf-8"))
+        h.update(b"\x00")
+    return h.hexdigest()
 
 
 def _rank_key(result: StrategyResult, ranking_metric: str):
@@ -147,9 +169,13 @@ def run_evaluation(
             "num_questions": len(questions),
             "num_scored_questions": len(scored_questions),
             "embedding_model": config.embedding.model,
+            "embedding_model_revision": embedder.revision,
             "top_k": k,
             "ranking_metric": config.eval.ranking_metric,
             "queries": {q.id: q.query for q in scored_questions},
+            "chunklab_version": __version__,
+            "corpus_sha256": _corpus_sha256(documents),
+            "questions_sha256": _questions_sha256(scored_questions),
         },
         strategy_results=results,
         recommendation=_build_recommendation(results, config, len(scored_questions)),

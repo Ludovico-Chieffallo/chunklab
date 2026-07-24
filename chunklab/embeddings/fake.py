@@ -17,6 +17,7 @@ _WORD_RE = re.compile(r"[a-z0-9]+")
 class FakeEmbedder:
     model_name = "fake-hash-embedder"
     max_seq_tokens: int | None = None
+    revision: str | None = None
 
     def __init__(self, dim: int = 256) -> None:
         self.dim = dim

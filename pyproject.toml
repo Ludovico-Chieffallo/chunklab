@@ -44,7 +44,10 @@ dev = ["pytest>=8.0", "ruff>=0.6", "pre-commit>=3.5"]
 chunklab = "chunklab.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/ludovicochieffallo/chunklab"
+Homepage = "https://github.com/Ludovico-Chieffallo/chunklab"
+Repository = "https://github.com/Ludovico-Chieffallo/chunklab"
+Issues = "https://github.com/Ludovico-Chieffallo/chunklab/issues"
+Changelog = "https://github.com/Ludovico-Chieffallo/chunklab/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["chunklab"]
