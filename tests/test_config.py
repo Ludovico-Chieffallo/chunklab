@@ -5,6 +5,7 @@ import pytest
 from chunklab.config import default_config, load_config, load_questions
 
 EXAMPLES = Path(__file__).parent.parent / "examples"
+TEST_DATA = Path(__file__).parent / "data"
 
 
 def test_example_config_validates():
@@ -33,7 +34,7 @@ def test_invalid_strategy_rejected(tmp_path):
 
 
 def test_load_questions():
-    questions = load_questions(EXAMPLES / "questions.example.yaml")
+    questions = load_questions(TEST_DATA / "questions.example.yaml")
     assert len(questions) == 19
     assert questions[0].gold_snippets
     # exactly one question (the dress-code one) has no gold snippets

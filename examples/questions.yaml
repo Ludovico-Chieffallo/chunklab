@@ -1,0 +1,1105 @@
+questions:
+- id: faq_spending_limit
+  query: What happens when my monthly budget hard cap is reached?
+  gold_snippets:
+  - new resource creation is rejected immediately and running compute instances are paused, while stored
+    data, snapshots, and reserved addresses are preserved untouched. The cap resets at midnight UTC on
+    the first day of the month, and a webhook can notify your own systems at fifty, eighty, and one hundred
+    percent of the budget.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_card_declined_tail
+  query: How long after the grace period does compute get stopped for unpaid accounts?
+  gold_snippets:
+  - After three consecutive failed charges the account enters a seven-day grace period; during grace the
+    console shows a red banner but nothing is suspended. If the seventh day passes without a successful
+    charge, new resource creation is blocked first, and running compute is stopped forty-eight hours later
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_jit_access
+  query: How long can a temporary elevated permission last?
+  gold_snippets:
+  - bounded window between fifteen minutes and eight hours, with a mandatory reason field. Approval comes
+    from any organization owner other than the requester, and the elevation expires automatically without
+    any action from either side.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_mfa_sms
+  query: Why is SMS not available as a second factor?
+  gold_snippets:
+  - SMS is deliberately not offered as a second factor because of SIM-swap risk
+  tags:
+  - short_answer
+  - faq
+  - src:faq_support
+- id: faq_vm_sla
+  query: What availability SLA does a single virtual machine have?
+  gold_snippets:
+  - A single instance carries a 99.5 percent monthly availability SLA, while an instance group spread
+    across two availability zones carries 99.95 percent. SLA credits are ten percent of the monthly fee
+    for the affected resources per breached tier, requested through a ticket within thirty days of the
+    incident with the affected instance ids.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_multi_attach
+  query: Can I attach one volume to several instances at the same time?
+  gold_snippets:
+  - 'Multi-attach is supported only on the ultra tier and must be enabled at volume creation; it cannot
+    be toggled later. The platform provides no locking: a cluster-aware filesystem or an application-level
+    protocol such as a database''s shared-disk mode is the customer''s responsibility.'
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_volume_shrink
+  query: Is it possible to shrink a block volume?
+  gold_snippets:
+  - Volumes can only grow online; shrinking is not supported
+  tags:
+  - short_answer
+  - faq
+  - src:faq_support
+- id: faq_key_revocation
+  query: What happens to volumes if I revoke their customer-managed key?
+  gold_snippets:
+  - key revocation renders all dependent volumes unreadable within one hour
+  tags:
+  - short_answer
+  - faq
+  - src:faq_support
+- id: faq_rate_limit
+  query: How many requests per second can a bucket prefix handle?
+  gold_snippets:
+  - 3,500 write and 5,500 read requests per second per key prefix, and throughput scales linearly by spreading
+    keys across prefixes. Sequential, timestamp-leading key names funnel all traffic into one prefix and
+    are the most common cause of throttling in ingestion pipelines.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_same_subnet
+  query: Two instances in the same subnet cannot reach each other — what is the usual cause?
+  gold_snippets:
+  - Rules can reference other security groups instead of IP ranges, which keeps policies valid as instances
+    come and go. The most frequent misconfiguration is a group that opens ports to external ranges but
+    not to its own group id
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_byoip
+  query: What are the requirements to bring my own IP range?
+  gold_snippets:
+  - provider-independent IPv4 blocks of /24 or larger, with a signed letter of authorization from the
+    range holder. Announcement propagation takes up to two business days, during which the range stays
+    usable at its previous location.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_dns_failover
+  query: How quickly does DNS failover switch to the secondary record?
+  gold_snippets:
+  - a secondary record takes over within thirty seconds of failure. Record propagation inside the platform's
+    resolvers is near-instant, while public propagation depends on the record TTL, with sixty seconds
+    as the practical minimum.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_scale_zero
+  query: How long does a node pool take to scale up from zero?
+  gold_snippets:
+  - Scale-up from zero takes about ninety seconds
+  tags:
+  - short_answer
+  - faq
+  - src:faq_support
+- id: faq_autoscaler_removal
+  query: When does the cluster autoscaler consider removing a node?
+  gold_snippets:
+  - requested utilization stays below fifty percent for ten minutes and every pod on it can be rescheduled
+    elsewhere without violating disruption budgets, affinity rules, or local storage constraints. Nodes
+    annotated as no-scale-down are never touched, which protects singleton workloads that tolerate no
+    eviction.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_db_replicas
+  query: How many read replicas can a managed database have?
+  gold_snippets:
+  - Up to five asynchronous read replicas are supported, including cross-region replicas for read locality
+    and disaster recovery. Replication lag is exported as a first-class metric, and a replica can be promoted
+    to a standalone primary in under a minute, which is the documented regional-failover path.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_fn_retries
+  query: Are failed function invocations retried?
+  gold_snippets:
+  - asynchronous invocations are retried twice with exponential backoff. After the final failure the event
+    goes to the project's dead-letter queue if one is configured, with the full payload and the error
+    chain attached.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_audit_retention
+  query: How long are audit logs kept?
+  gold_snippets:
+  - immutable and retained for 400 days. A streaming export can copy audit records to a bucket or an external
+    SIEM within one minute of the event, and the export itself is recorded in the trail.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_immutability_cooling
+  query: Can an attacker with owner credentials disable backup immutability instantly?
+  gold_snippets:
+  - Lock changes take effect after a seventy-two-hour cooling period announced to all owners, which defeats
+    smash-and-grab credential abuse. Restore operations remain instant and unrestricted, so the lock protects
+    the data without slowing recovery.
+  tags:
+  - short_answer
+  - faq
+  - two_sentence
+  - src:faq_support
+- id: faq_pentest
+  query: Do I need approval before running a penetration test?
+  gold_snippets:
+  - denial-of-service scenarios, which always require a scheduled engagement
+  tags:
+  - short_answer
+  - faq
+  - src:faq_support
+- id: faq_escalation
+  query: What happens when I escalate a stalled support ticket?
+  gold_snippets:
+  - pages the duty manager of the support organization
+  tags:
+  - short_answer
+  - faq
+  - src:faq_support
+- id: faq_invoice_sftp
+  query: Can finance receive monthly statements without logging into the console?
+  gold_snippets:
+  - delivered to an SFTP drop or fetched through the invoice API
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_stale_keys
+  query: How do I find credentials that nobody uses anymore?
+  gold_snippets:
+  - keys older than ninety days are flagged on the credentials hygiene page, and an organization policy
+    can force-expire them. Each key shows its last-used timestamp and source IP, which makes abandoned
+    keys easy to distinguish from quiet-but-alive ones.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_session_length
+  query: When do signed-in users get logged out automatically?
+  gold_snippets:
+  - Interactive console sessions expire after twelve hours, or after thirty minutes of inactivity when
+    the idle-timeout policy is enabled. Re-authentication always requires the second factor in MFA-enforcing
+    organizations, and active sessions can be revoked centrally per member.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_serial_console
+  query: How can I recover access to a machine that dropped off the network?
+  gold_snippets:
+  - SSH tunnel using a short-lived token valid for five minutes
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_live_migration_pause
+  query: Will my latency-sensitive service notice host maintenance?
+  gold_snippets:
+  - pauses the guest for under one second while dirty memory pages converge. Latency-sensitive workloads
+    can subscribe to migration events and receive a sixty-second pre-notification to shed traffic before
+    the pause.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_burst
+  query: Can disk performance temporarily exceed the provisioned baseline?
+  gold_snippets:
+  - sustain 3,000 IOPS for up to thirty minutes. The remaining burst balance is exported as a metric,
+    so exhaustion is predictable rather than a surprise slowdown.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_object_lock
+  query: Can stored records be made undeletable to satisfy regulators?
+  gold_snippets:
+  - compliance mode prevents deletion or overwrite of a version
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_inventory
+  query: How do I list everything we store for an external audit?
+  gold_snippets:
+  - Daily inventory reports list every object with size, storage class, encryption status, and checksum,
+    delivered to a destination bucket as compressed CSV or Parquet. Inventories are the recommended input
+    for large-scale audits instead of paginated listing calls.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_flow_logs
+  query: Where can I see connections that were dropped before reaching my servers?
+  gold_snippets:
+  - Flow logs record accepted and rejected flows per network interface with one-minute aggregation and
+    land in the logging service or a bucket. Sampling is full by default, and a per-subnet setting can
+    reduce it to one in ten for very chatty fabrics.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_mtu
+  query: Do jumbo frames work between my machines?
+  gold_snippets:
+  - jumbo frames up to 8950 bytes, negotiated automatically by the maintained images. Traffic leaving
+    the region is clamped to 1500, and the platform rewrites MSS on egress paths so misconfigured guests
+    avoid silent fragmentation.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_sticky
+  query: Can a user's session keep landing on the same server?
+  gold_snippets:
+  - Cookie-based affinity pins a client to one backend for a configurable duration
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_idle_timeout
+  query: Why do long-polling requests get cut off after about a minute?
+  gold_snippets:
+  - idle timeout defaults to sixty seconds and is extendable to one hour
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_admission
+  query: Can I block workloads with critical vulnerabilities from being deployed?
+  gold_snippets:
+  - reject privileged pods, host-network usage, and images without a passing vulnerability scan, evaluated
+    before scheduling. Policies run in audit mode first, listing would-be violations, so enforcement can
+    be turned on without breaking running teams.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_pooler
+  query: How many simultaneous connections can my app open after a big deploy?
+  gold_snippets:
+  - multiplexes up to ten thousand client connections
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_slow_queries
+  query: Which statements are dragging down my application's response time?
+  gold_snippets:
+  - samples statements slower than one hundred milliseconds together with their execution plans
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_canary
+  query: Can I do a percentage-based rollout of a new version?
+  gold_snippets:
+  - split traffic between two versions by percentage, and the split can shift automatically on a schedule
+    or halt on an alarm signal. Rollback is a metadata change on the alias, taking effect for new invocations
+    within seconds.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_synthetic
+  query: Is my public endpoint being checked from multiple countries?
+  gold_snippets:
+  - eight geographic locations at one-minute intervals
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_dashboard_share
+  query: Can external people view our metrics without having an account?
+  gold_snippets:
+  - signed link with a mandatory expiry of at most thirty days
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_k8s_hooks
+  query: Can my database flush to disk before a snapshot is taken?
+  gold_snippets:
+  - Pre- and post-backup hooks run inside annotated pods, letting databases flush and quiesce before the
+    volume snapshot is taken. Hook failures mark the backup point as crash-consistent-only rather than
+    silently pretending consistency.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_legal_hold
+  query: Can compliance freeze data deletion because of a lawsuit?
+  gold_snippets:
+  - pins selected backup points indefinitely, overriding every retention and lifecycle rule until the
+    hold is explicitly released. Holds require a case reference, appear in the compliance report, and
+    their creation and release are both recorded in the audit trail.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: faq_api_cidr
+  query: Can I allowlist only our office network for management operations?
+  gold_snippets:
+  - restrict control-plane API access to declared CIDR ranges
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - src:faq_support
+- id: faq_training
+  query: Are certification exams covered by our plan?
+  gold_snippets:
+  - twenty training credits per year, redeemable for instructor-led courses or certification exams. Credits
+    are organization-wide, expire at contract renewal, and unused balances appear in the quarterly operational
+    review alongside a consumption plan.
+  tags:
+  - short_answer
+  - faq
+  - tail
+  - two_sentence
+  - src:faq_support
+- id: msa_convenience_notice
+  query: How much notice is required to terminate the agreement for convenience?
+  gold_snippets:
+  - written notice given at least forty-five (45) days before the intended effective date
+  tags:
+  - contract
+  - needs_context
+  - src:contract_msa
+- id: msa_cure_period
+  query: How long does a party have to cure a material breach?
+  gold_snippets:
+  - fails to remedy it within thirty (30) days of receiving a written notice
+  tags:
+  - contract
+  - src:contract_msa
+- id: msa_payment_material
+  query: When does late payment become a material breach?
+  gold_snippets:
+  - exceeds one monthly invoice and remains unpaid fifteen (15) days after a written reminder
+  tags:
+  - contract
+  - needs_context
+  - src:contract_msa
+- id: msa_transition
+  query: Is there transition assistance after the contract ends?
+  gold_snippets:
+  - provide reasonable assistance for an orderly handover, including the export of Customer Data
+  tags:
+  - contract
+  - boundary
+  - src:contract_msa
+- id: msa_invoice_terms
+  query: What are the payment terms for invoices?
+  gold_snippets:
+  - payable within thirty (30) days of the invoice date by bank transfer
+  tags:
+  - contract
+  - src:contract_msa
+- id: msa_dispute_window
+  query: How many days do we have to dispute an invoice?
+  gold_snippets:
+  - notify Provider in writing within fifteen (15) days of the invoice date
+  tags:
+  - contract
+  - src:contract_msa
+- id: msa_price_increase
+  query: By how much can the provider raise prices at renewal?
+  gold_snippets:
+  - may not exceed the greater of five percent (5%) and the percentage change of the Italian FOI consumer
+    price index
+  tags:
+  - contract
+  - needs_context
+  - boundary
+  - src:contract_msa
+- id: msa_breach_notification
+  query: How quickly must a security breach be notified to the customer?
+  gold_snippets:
+  - within forty-eight (48) hours of becoming aware
+  tags:
+  - contract
+  - needs_context
+  - src:contract_msa
+- id: msa_availability
+  query: What availability does the provider commit to?
+  gold_snippets:
+  - monthly availability of ninety-nine point five percent (99.5%)
+  tags:
+  - contract
+  - src:contract_msa
+- id: msa_credit_cap
+  query: What is the maximum service credit we can get in a month?
+  gold_snippets:
+  - capped, in each calendar month, at thirty percent (30%) of the monthly fee concerned
+  tags:
+  - contract
+  - needs_context
+  - src:contract_msa
+- id: msa_critical_ack
+  query: How fast are critical production outages acknowledged?
+  gold_snippets:
+  - within one (1) hour on Business Days between 08:00 and 20:00 Central European Time
+  tags:
+  - contract
+  - src:contract_msa
+- id: msa_liability_cap
+  query: What is the overall cap on liability?
+  gold_snippets:
+  - limited, for all events occurring in any period of twelve (12) consecutive months, to one hundred
+    percent (100%) of the Fees
+  tags:
+  - contract
+  - boundary
+  - src:contract_msa
+- id: msa_indemn_cap
+  query: Is there a higher liability cap for intellectual property indemnification?
+  gold_snippets:
+  - For the obligations of Article 9 only, the preceding cap is raised to two hundred percent (200%)
+  tags:
+  - contract
+  - needs_context
+  - src:contract_msa
+- id: msa_confidentiality_survival
+  query: How long do confidentiality obligations last after the agreement ends?
+  gold_snippets:
+  - survive for five (5) years after the end of this Agreement
+  tags:
+  - contract
+  - src:contract_msa
+- id: msa_fm_termination
+  query: Can we exit the contract if a force majeure event goes on too long?
+  gold_snippets:
+  - continuous period of more than sixty (60) days, either Party may end the affected Service Order
+  tags:
+  - contract
+  - src:contract_msa
+- id: msa_escalation
+  query: What steps are required before starting court proceedings?
+  gold_snippets:
+  - within ten (10) Business Days of a written escalation notice, the engagement managers shall discuss
+    the dispute
+  tags:
+  - contract
+  - needs_context
+  - src:contract_msa
+- id: msa_notice_form
+  query: In what form must formal notices like termination be sent?
+  gold_snippets:
+  - delivered by hand, by registered mail with return receipt, or by certified electronic mail (PEC)
+  tags:
+  - contract
+  - src:contract_msa
+- id: msa_ip_deliverables
+  query: Who owns the intellectual property in the deliverables once they are paid?
+  gold_snippets:
+  - upon full payment of the Fees due for it, Provider assigns to Customer the intellectual property rights
+  tags:
+  - contract
+  - src:contract_msa
+- id: api_key_roles
+  query: What is a writer API key allowed to do?
+  gold_snippets:
+  - may additionally create and update resources but may not delete them
+  tags:
+  - api
+  - short_answer
+  - src:api_reference
+- id: api_rotation_check
+  query: How do I check whether an API key is still used before revoking it?
+  gold_snippets:
+  - shows the most recent authenticated request and is the recommended check before revoking
+  tags:
+  - api
+  - needs_context
+  - src:api_reference
+- id: api_session_ttl
+  query: How long can a browser session token live?
+  gold_snippets:
+  - between 60 and 3600, default 900
+  tags:
+  - api
+  - code
+  - src:api_reference
+- id: api_rate_starter
+  query: How many requests per minute does the Starter plan allow?
+  gold_snippets:
+  - 300 requests per minute on Starter
+  tags:
+  - api
+  - short_answer
+  - src:api_reference
+- id: api_429
+  query: What should my client do when it gets throttled?
+  gold_snippets:
+  - honor `Retry-After` and apply jittered exponential backoff
+  tags:
+  - api
+  - src:api_reference
+- id: api_error_branch
+  query: Which error field should integrations switch on?
+  gold_snippets:
+  - branch on `type`, never on `message`
+  tags:
+  - api
+  - code
+  - src:api_reference
+- id: api_idempotency
+  query: For how long is an idempotency key remembered?
+  gold_snippets:
+  - '`Idempotency-Key` header whose effect is stored for twenty-four hours'
+  tags:
+  - api
+  - src:api_reference
+- id: api_upload_limit
+  query: How do I upload datasets larger than the inline limit?
+  gold_snippets:
+  - returns a presigned upload URL valid for one hour
+  tags:
+  - api
+  - boundary
+  - src:api_reference
+- id: api_schema_infer
+  query: How many rows does schema inference sample?
+  gold_snippets:
+  - inferred from a sample of up to 100,000 rows
+  tags:
+  - api
+  - code
+  - src:api_reference
+- id: api_archived_retention
+  query: What eventually happens to an archived dataset?
+  gold_snippets:
+  - retained for ninety days and then deleted permanently
+  tags:
+  - api
+  - src:api_reference
+- id: api_budget_minutes
+  query: What range is allowed for the training time budget?
+  gold_snippets:
+  - caps total optimization time between 5 and 480
+  tags:
+  - api
+  - code
+  - src:api_reference
+- id: api_cancel
+  query: How quickly does canceling a running job take effect?
+  gold_snippets:
+  - checkpoints and stops within two minutes
+  tags:
+  - api
+  - src:api_reference
+- id: api_promote
+  query: What happens to the previous production model when I promote a new one?
+  gold_snippets:
+  - demoting the previous production model to `retired` in the same operation
+  tags:
+  - api
+  - src:api_reference
+- id: api_export_validity
+  query: How long does a model export download link stay valid?
+  gold_snippets:
+  - presigned URL valid for twenty-four hours
+  tags:
+  - api
+  - src:api_reference
+- id: api_batch_price
+  query: Are batch predictions cheaper than online ones?
+  gold_snippets:
+  - forty percent below the online rate
+  tags:
+  - api
+  - short_answer
+  - src:api_reference
+- id: api_partial_failure
+  query: Why do I get HTTP 200 even when some prediction records are invalid?
+  gold_snippets:
+  - check per-record `error` fields rather than the status code
+  tags:
+  - api
+  - needs_context
+  - src:api_reference
+- id: api_webhook_verify
+  query: How should webhook deliveries be verified?
+  gold_snippets:
+  - verify the signature against the raw request body before parsing, compare it in constant time
+  tags:
+  - api
+  - src:api_reference
+- id: api_secret_grace
+  query: After rotating the webhook signing secret, how long does the old secret keep working?
+  gold_snippets:
+  - keeping the previous one valid for a grace window of twenty-four hours
+  tags:
+  - api
+  - src:api_reference
+- id: api_usage_span
+  query: What is the maximum date range for one usage query?
+  gold_snippets:
+  - spanning at most ninety-two days per request
+  tags:
+  - api
+  - src:api_reference
+- id: api_explain_cost
+  query: What is the cost of turning on prediction explanations?
+  gold_snippets:
+  - roughly triple the latency and double the prediction-unit cost
+  tags:
+  - api
+  - src:api_reference
+- id: api_fg_schedule
+  query: How is a feature group kept up to date?
+  gold_snippets:
+  - refresh `schedule` in cron syntax evaluated in UTC
+  tags:
+  - api
+  - code
+  - src:api_reference
+- id: api_fg_fail
+  query: What do consumers see while a feature refresh has failed?
+  gold_snippets:
+  - leaves the previous successful snapshot serving
+  tags:
+  - api
+  - needs_context
+  - src:api_reference
+- id: api_pit
+  query: How does training-set assembly avoid using information from the future?
+  gold_snippets:
+  - features returned are those whose event time is the latest at or before the label's timestamp
+  tags:
+  - api
+  - src:api_reference
+- id: api_online_read
+  query: How many entity keys can a single online feature read return?
+  gold_snippets:
+  - up to 200 entity keys per call
+  tags:
+  - api
+  - short_answer
+  - src:api_reference
+- id: api_conn_credentials
+  query: Can I retrieve a stored connection password later?
+  gold_snippets:
+  - never returned by any read endpoint
+  tags:
+  - api
+  - src:api_reference
+- id: api_cursor_regression
+  query: What happens if an incremental sync finds the cursor went backwards?
+  gold_snippets:
+  - fail with `conflict` and require an explicit
+  tags:
+  - api
+  - code
+  - src:api_reference
+- id: api_conn_degraded
+  query: When does a data connection get marked as degraded?
+  gold_snippets:
+  - failing three consecutive scheduled syncs is marked `degraded`
+  tags:
+  - api
+  - src:api_reference
+- id: api_monitor_storm
+  query: How does monitoring avoid flooding me with alerts?
+  gold_snippets:
+  - at most one per metric per window
+  tags:
+  - api
+  - needs_context
+  - src:api_reference
+- id: api_labels_window
+  query: How old can ground-truth labels be and still be joined to predictions?
+  gold_snippets:
+  - within ninety days of the prediction are joined
+  tags:
+  - api
+  - src:api_reference
+- id: api_invite_expiry
+  query: How long does a project invitation remain valid?
+  gold_snippets:
+  - expires after fourteen days
+  tags:
+  - api
+  - short_answer
+  - src:api_reference
+- id: api_transfer_billing
+  query: When does billing switch owner after a project transfer?
+  gold_snippets:
+  - switches at the top of the hour following completion
+  tags:
+  - api
+  - src:api_reference
+- id: wp_tool_count
+  query: How many data tools does the median organization run versus what is justified?
+  gold_snippets:
+  - operates eleven distinct data tools in production
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_sample
+  query: How many organizations answered the survey?
+  gold_snippets:
+  - structured responses from 412 organizations
+  tags:
+  - whitepaper
+  - short_answer
+  - src:whitepaper
+- id: wp_licensing_share
+  query: What share of total cost is direct licensing?
+  gold_snippets:
+  - Direct licensing accounts for only forty-four percent
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_glue_tax
+  query: What does each extra tool cost in integration work?
+  gold_snippets:
+  - recurring 190 thousand euros per year in glue work
+  tags:
+  - whitepaper
+  - needs_context
+  - src:whitepaper
+- id: wp_duplication_origin
+  query: What is the most common origin of duplicated tooling?
+  gold_snippets:
+  - mergers brought incompatible stacks in fifty-two percent of cases
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_overrun
+  query: By how much do platform migrations overrun their plans?
+  gold_snippets:
+  - overran its planned duration by sixty percent
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_zombie
+  query: How common are parallel legacy systems that never get shut down?
+  gold_snippets:
+  - forty-one percent of organizations report at least one such zombie system
+  tags:
+  - whitepaper
+  - needs_context
+  - src:whitepaper
+- id: wp_enforced_share
+  query: What fraction of organizations enforce governance in the platform itself?
+  gold_snippets:
+  - Only fifteen percent are enforced
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_incident_drop
+  query: What outcome difference does enforced governance show?
+  gold_snippets:
+  - forty percent fewer data incidents reaching consumers
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_service_keys
+  query: How many organizations rotate service-account keys?
+  gold_snippets:
+  - only twenty-eight percent rotate the service-account keys
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_onboarding
+  query: How long does onboarding take in large tool stacks?
+  gold_snippets:
+  - median of nine months to full productivity
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_ai_share
+  query: How many organizations have AI reading from the platform daily?
+  gold_snippets:
+  - Fifty-seven percent of organizations report that at least one production AI use case
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_delta_savings
+  query: What did the insurance case study save per year?
+  gold_snippets:
+  - reduced annual platform spend by 1.4 million
+  tags:
+  - whitepaper
+  - needs_context
+  - src:whitepaper
+- id: wp_kilo_quote
+  query: How did the retailer's finance review describe the stalled migration?
+  gold_snippets:
+  - we are paying twice to stand still
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_top_recommendation
+  query: Which recommendation was rated highest and how?
+  gold_snippets:
+  - rated this highest at 8.1 out of 10
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_quality_time
+  query: How much analyst time goes into double-checking numbers?
+  gold_snippets:
+  - spend twenty-seven percent of their week validating or reconciling figures
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_incident_cost
+  query: What concrete incident unlocked one retailer's quality budget?
+  gold_snippets:
+  - a mispriced promotion costing 640 thousand euros in eleven hours
+  tags:
+  - whitepaper
+  - needs_context
+  - src:whitepaper
+- id: wp_platform_ratio
+  query: How many producers can one platform engineer support?
+  gold_snippets:
+  - one platform engineer sustains the tooling of roughly nine data producers
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_contracts
+  query: What benefit do teams enforcing data contracts report?
+  gold_snippets:
+  - breaking changes caught before production rose to eighty-three percent
+  tags:
+  - whitepaper
+  - src:whitepaper
+- id: wp_idle
+  query: Which cost model shows the least wasted compute?
+  gold_snippets:
+  - the lowest idle-resource waste, at seven percent of compute spend
+  tags:
+  - whitepaper
+  - needs_context
+  - src:whitepaper
+- id: pol_partner_daily
+  query: What is the daily travel allowance for a Partner?
+  gold_snippets:
+  - '| Partner | 120 | 300 | 220 | Business | Business |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_senior_longhaul
+  query: Which flight class do Senior Consultants get on long-haul flights?
+  gold_snippets:
+  - '| Senior Consultant | 75 | 190 | 150 | Economy | Premium Economy |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_mileage
+  query: What is the mileage reimbursement for personal cars?
+  gold_snippets:
+  - reimbursed at 0.38 euros per kilometer
+  tags:
+  - policy
+  - src:policy_tables
+- id: pol_security_oncall
+  query: How much does security incident response on-call pay?
+  gold_snippets:
+  - '| Security incident response | 70 | 140 | 90 | 5 |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_italy_leave
+  query: How many annual leave days do employees in Italy have?
+  gold_snippets:
+  - '| Italy | 26 | 10 | 30 June | 100% for 180 days |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_poland_carry
+  query: Until when can Polish employees use carried-over leave?
+  gold_snippets:
+  - '| Poland | 26 | 12 | 30 September | 80% for 33 days |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_data_eng_laptop
+  query: What laptop does a data engineer receive and how often is it replaced?
+  gold_snippets:
+  - '| Data engineering | 16-inch workstation | 30 | 2 | 25 | On request |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_surveillance
+  query: How long is camera footage retained?
+  gold_snippets:
+  - '| Video surveillance footage | 30 days | Recording | Facilities NVR |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_recruitment_retention
+  query: How long are files of rejected candidates kept?
+  gold_snippets:
+  - '| Recruitment files of non-hired candidates | 18 months | Position closed | ATS |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_threshold_300k
+  query: Who has to approve a 300,000 euro purchase?
+  gold_snippets:
+  - '| 100,001 to 500,000 | Finance director | Managing partner | Mandatory |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_strictly_conf
+  query: Can strictly confidential material be shared outside the company?
+  gold_snippets:
+  - '| Strictly confidential | M&A material, credentials | Prohibited without GC approval | Required with
+    CMK | Yes |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_remote_setup
+  query: What one-time home office budget do fully remote employees get?
+  gold_snippets:
+  - '| Remote-first | 35 | 25 | 650 | 0 |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_s1_updates
+  query: How often must stakeholders be updated during a critical incident?
+  gold_snippets:
+  - '| S1 | Confirmed data breach or client production down | 15 minutes | Every hour | CISO, GC, affected
+    client partner |'
+  tags:
+  - policy
+  - table
+  - src:policy_tables
+- id: pol_expense_deadline
+  query: What happens to expense reports filed very late?
+  gold_snippets:
+  - later than sixty days are rejected automatically
+  tags:
+  - policy
+  - src:policy_tables
+- id: cross_audit_400
+  query: How long are audit logs retained?
+  gold_snippets:
+  - immutable and retained for 400 days
+  - readable for 400 days, matching the platform-wide audit retention
+  - '| Access logs to production systems | 400 days | Log creation | SIEM |'
+  tags:
+  - cross_doc
+  - multi_snippet
+  - src:cross
+- id: cross_breach_48h
+  query: Within how many hours must a data breach be notified or assessed?
+  gold_snippets:
+  - within forty-eight (48) hours of becoming aware
+  - must conclude within forty-eight hours of classification
+  tags:
+  - cross_doc
+  - multi_snippet
+  - src:cross
+- id: msa_liability_caps_multi
+  query: What are all the liability caps in the master agreement?
+  gold_snippets:
+  - to one hundred percent (100%) of the Fees paid or payable
+  - the preceding cap is raised to two hundred percent (200%)
+  tags:
+  - contract
+  - multi_snippet
+  - src:contract_msa
+- id: api_rate_multi
+  query: What are the rate limits and what should a client do when throttled?
+  gold_snippets:
+  - 300 requests per minute on Starter
+  - honor `Retry-After` and apply jittered exponential backoff
+  tags:
+  - api
+  - multi_snippet
+  - src:api_reference

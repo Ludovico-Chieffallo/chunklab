@@ -39,6 +39,22 @@ def test_structure_chunker_table_intact(handbook):
     assert any("Pension match" in c.text and "Learning budget" in c.text for c in table_chunks)
 
 
+def test_structure_merges_heading_only_sections(handbook):
+    from chunklab.loaders.markdown_elements import extract_markdown_elements
+    from chunklab.models import Document
+
+    text = (
+        "## Datasets\n\n### Upload\n\nBody text about uploads.\n\n"
+        "### Query\n\nBody about querying.\n"
+    )
+    doc = Document(id="t", source_path="t.md", text=text, elements=extract_markdown_elements(text))
+    chunks = StructureChunker(max_tokens=800).chunk(doc)
+    # The bare '## Datasets' heading must not become its own tiny chunk.
+    assert all(c.token_count > 5 for c in chunks)
+    assert chunks[0].text.startswith("## Datasets")
+    assert "### Upload" in chunks[0].text
+
+
 def test_semantic_floor_vs_no_floor(handbook, fake_embedder):
     floored = SemanticChunker(fake_embedder, min_tokens=200, max_tokens=1000).chunk(handbook)
     no_floor = SemanticChunker(

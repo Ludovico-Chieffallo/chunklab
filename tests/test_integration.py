@@ -10,6 +10,7 @@ from chunklab.report.json_report import write_json_report
 from chunklab.runner import evaluate
 
 EXAMPLES = Path(__file__).parent.parent / "examples"
+TEST_DATA = Path(__file__).parent / "data"
 
 
 @pytest.fixture(scope="module")
@@ -17,8 +18,8 @@ def report():
     config = default_config()
     config.embedding.backend = "fake"
     return evaluate(
-        docs=EXAMPLES / "sample_docs",
-        questions=EXAMPLES / "questions.example.yaml",
+        docs=TEST_DATA,
+        questions=TEST_DATA / "questions.example.yaml",
         config=config,
     )
 
@@ -59,8 +60,8 @@ def test_real_model_floor_beats_no_floor():
     """With real embeddings, floored semantic must beat semantic_no_floor."""
     config = default_config()
     report = evaluate(
-        docs=EXAMPLES / "sample_docs",
-        questions=EXAMPLES / "questions.example.yaml",
+        docs=TEST_DATA,
+        questions=TEST_DATA / "questions.example.yaml",
         config=config,
     )
     by_name = {r.strategy: r for r in report.strategy_results}

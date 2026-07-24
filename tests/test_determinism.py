@@ -9,12 +9,13 @@ from chunklab.config import default_config, load_questions
 from chunklab.runner import run_evaluation
 
 EXAMPLES = Path(__file__).parent.parent / "examples"
+TEST_DATA = Path(__file__).parent / "data"
 
 
 def _run(handbook):
     config = default_config()
     config.embedding.backend = "fake"
-    questions = load_questions(EXAMPLES / "questions.example.yaml")
+    questions = load_questions(TEST_DATA / "questions.example.yaml")
     return run_evaluation([handbook], questions, config)
 
 
