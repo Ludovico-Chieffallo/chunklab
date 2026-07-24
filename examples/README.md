@@ -1,15 +1,18 @@
 # Examples
 
-A ready-to-run corpus so you can try chunklab in one command.
-
-- [`sample_docs/employee_handbook.md`](sample_docs/employee_handbook.md) — a fictional, public-domain employee handbook with headings, subsections, and a benefits table.
-- [`questions.example.yaml`](questions.example.yaml) — 19 questions with verbatim gold snippets (one intentionally left without gold snippets to demonstrate the skip-with-warning behavior).
-- [`config.example.yaml`](config.example.yaml) — the default configuration, spelled out.
-
-Run it:
+A ready-to-run corpus so you can try chunklab in one command:
 
 ```bash
-chunklab run --docs examples/sample_docs --questions examples/questions.example.yaml
+chunklab run --docs examples/corpus --questions examples/questions.yaml
 ```
 
 Then open `chunklab_report/report.html`.
+
+- [`corpus/`](corpus/) — five fictional documents (MD, PDF, DOCX), each built to stress a
+  different chunking failure mode. See [`CORPUS.md`](CORPUS.md) for the design and the
+  measured effects.
+- [`questions.yaml`](questions.yaml) — 129 questions with verbatim gold snippets, tagged by
+  what they stress and by source document.
+- [`generators/`](generators/) — scripts that reproduce the binary documents
+  (`whitepaper.pdf`, `policy_tables.docx`).
+- [`config.example.yaml`](config.example.yaml) — the default configuration, spelled out.
