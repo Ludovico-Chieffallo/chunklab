@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Metric rigor (schema 1.1, additive): `retrieved_tokens_at_k` and `context_efficiency`
+  per strategy expose the context cost that containment-based recall hides; new
+  `balanced` ranking metric (`recall - lambda * (tokens/min_tokens - 1)`, documented and
+  motivated in `docs/metrics.md`); `precision_at_k` and `tok@k` now shown in the console
+  table with a one-line legend.
+- Statistical honesty: per-strategy bootstrap `ci95`, and a paired-bootstrap gate on the
+  recommendation — when the top-2 recall difference's 95% CI includes zero, the report
+  declares the strategies statistically indistinguishable and estimates the question
+  count needed to separate them, instead of naming a winner. Warning under 15 scored
+  questions. Seeded via `eval.seed` (recorded in `corpus_summary`).
+- Anti-degeneration guard: hidden `whole_document` strategy plus tests proving that raw
+  recall rewards it (the bias) and `balanced` demotes it (the fix).
+
 ## [0.2.0] - 2026-07-24
 
 ### Added

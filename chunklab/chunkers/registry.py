@@ -13,6 +13,10 @@ def available_strategies() -> dict[str, str]:
     }
 
 
+# Valid in configs but not advertised: test/diagnostic strategies.
+HIDDEN_STRATEGIES = {"whole_document"}
+
+
 def make_chunker(name: str, params: dict, embedder=None) -> Chunker:
     if name == "fixed":
         from chunklab.chunkers.fixed import FixedChunker
@@ -32,4 +36,8 @@ def make_chunker(name: str, params: dict, embedder=None) -> Chunker:
         if embedder is None:
             raise ValueError(f"strategy '{name}' requires an embedder")
         return SemanticChunker(embedder, strategy_name=name, **params)
+    if name == "whole_document":
+        from chunklab.chunkers.whole_document import WholeDocumentChunker
+
+        return WholeDocumentChunker(**params)
     raise ValueError(f"unknown strategy '{name}'")

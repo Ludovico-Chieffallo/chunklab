@@ -11,9 +11,11 @@ from chunklab.diagnostics.chunk_health import compute_chunk_health
 from chunklab.embeddings.registry import make_embedder
 from chunklab.eval import metrics as m
 from chunklab.eval.gold_match import score_question
+from chunklab.eval.significance import bootstrap_mean_ci
 from chunklab.loaders.registry import load_documents
 from chunklab.models import Document, EvalReport, Question, StrategyResult
 from chunklab.retrieval.dense import DenseRetriever
+from chunklab.text_utils import count_tokens
 
 
 def _corpus_sha256(documents: list[Document]) -> str:
@@ -37,7 +39,8 @@ def _questions_sha256(questions: list[Question]) -> str:
 
 
 def _rank_key(result: StrategyResult, ranking_metric: str):
-    primary = getattr(result, ranking_metric)
+    attr = "balanced_score" if ranking_metric == "balanced" else ranking_metric
+    primary = getattr(result, attr)
     return (
         -primary,
         -result.mrr,
@@ -46,31 +49,66 @@ def _rank_key(result: StrategyResult, ranking_metric: str):
     )
 
 
+def _per_question_recalls(result: StrategyResult) -> list[float]:
+    return [q.gold_found_count / q.gold_total for q in result.per_question if q.gold_total > 0]
+
+
 def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scored: int) -> str:
     if not ranked:
         return "No strategies were evaluated."
     best, worst = ranked[0], ranked[-1]
     metric = config.eval.ranking_metric
+    metric_attr = "balanced_score" if metric == "balanced" else metric
     k = config.retrieval.top_k
     metric_label = metric.replace("_at_k", f"@{k}").replace("_", " ")
     params = ", ".join(f"{key}={val}" for key, val in best.config.items())
+
+    # Statistical gate: recommend only if the top-2 gap survives a paired bootstrap.
+    if len(ranked) > 1:
+        from chunklab.eval.significance import (
+            estimate_questions_to_separate,
+            paired_bootstrap_diff_ci,
+        )
+
+        a, b = _per_question_recalls(ranked[0]), _per_question_recalls(ranked[1])
+        if a and len(a) == len(b):
+            diff = sum(a) / len(a) - sum(b) / len(b)
+            ci = paired_bootstrap_diff_ci(
+                a, b, resamples=config.eval.bootstrap_resamples, seed=config.eval.seed
+            )
+            if ci[0] <= 0.0 <= ci[1]:
+                needed = estimate_questions_to_separate(len(a), diff, ci)
+                needed_txt = (
+                    f" Roughly {needed} scored questions would be needed to separate them"
+                    " at the observed difference."
+                    if needed
+                    else ""
+                )
+                return (
+                    f"No winner: '{ranked[0].strategy}' and '{ranked[1].strategy}' are"
+                    f" statistically indistinguishable on {num_scored} scored questions"
+                    f" (recall difference {diff:+.3f}, 95% CI [{ci[0]:+.3f}, {ci[1]:+.3f}]"
+                    f" includes zero).{needed_txt}"
+                    " Add questions before committing to a strategy."
+                )
 
     lines = [
         f"Use {best.strategy.upper()} chunking"
         + (f" ({params})." if params else ".")
         + f" It gave the best retrieval on your corpus "
-        f"({metric_label} = {getattr(best, metric):.2f})."
+        f"({metric_label} = {getattr(best, metric_attr):.2f})."
     ]
 
     if worst.chunk_health.pct_tiny >= 0.30 and worst.strategy != best.strategy:
         line = (
-            f"{worst.strategy} scored worst ({metric_label} = {getattr(worst, metric):.2f}) "
+            f"{worst.strategy} scored worst ({metric_label} = "
+            f"{getattr(worst, metric_attr):.2f}) "
             f"with {worst.chunk_health.pct_tiny:.0%} of its chunks under "
             f"{config.eval.min_floor_tokens} tokens (the fragment trap)."
         )
         floored = next((r for r in ranked if r.strategy == "semantic"), None)
         if worst.strategy == "semantic_no_floor" and floored:
-            delta = getattr(floored, metric) - getattr(worst, metric)
+            delta = getattr(floored, metric_attr) - getattr(worst, metric_attr)
             if delta > 0:
                 line += f" The floored 'semantic' variant recovered {delta * 100:.0f} points."
         lines.append(line)
@@ -109,9 +147,18 @@ def run_evaluation(
     if not scored_questions:
         raise ValueError("no questions with gold snippets - nothing to score")
 
+    if len(scored_questions) < 15:
+        warnings.append(
+            f"only {len(scored_questions)} scored questions: differences between strategies "
+            "are unlikely to be statistically meaningful; aim for at least 15-20."
+        )
+
     embedder = make_embedder(config.embedding.backend, config.embedding.model)
     doc_map = {d.id: d for d in documents}
     k = config.retrieval.top_k
+    gold_tokens = {
+        q.id: [count_tokens(g) for g in q.gold_snippets] for q in scored_questions
+    }
 
     results: list[StrategyResult] = []
     chunks_by_strategy: dict[str, list] = {}
@@ -149,9 +196,25 @@ def run_evaluation(
                 hit_rate_at_k=m.hit_rate_at_k(per_question),
                 mrr=m.mrr(per_question),
                 precision_at_k=m.precision_at_k(per_question, k),
+                retrieved_tokens_at_k=m.retrieved_tokens_at_k(per_question),
+                context_efficiency=m.context_efficiency(per_question, gold_tokens),
                 chunk_health=health,
                 per_question=per_question,
             )
+        )
+
+    # Balanced score needs every strategy's token cost (normalized on the minimum).
+    balanced = m.balanced_scores(
+        {r.strategy: r.recall_at_k for r in results},
+        {r.strategy: r.retrieved_tokens_at_k for r in results},
+        config.eval.balanced_lambda,
+    )
+    for r in results:
+        r.balanced_score = balanced[r.strategy]
+        r.ci95 = bootstrap_mean_ci(
+            _per_question_recalls(r),
+            resamples=config.eval.bootstrap_resamples,
+            seed=config.eval.seed,
         )
 
     results.sort(key=lambda r: _rank_key(r, config.eval.ranking_metric))
@@ -172,6 +235,8 @@ def run_evaluation(
             "embedding_model_revision": embedder.revision,
             "top_k": k,
             "ranking_metric": config.eval.ranking_metric,
+            "seed": config.eval.seed,
+            "balanced_lambda": config.eval.balanced_lambda,
             "queries": {q.id: q.query for q in scored_questions},
             "chunklab_version": __version__,
             "corpus_sha256": _corpus_sha256(documents),

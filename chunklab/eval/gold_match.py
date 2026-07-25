@@ -79,4 +79,5 @@ def score_question(
         split_across_chunks=split_across,
         gold_found_count=len(found),
         gold_total=gold_total,
+        found_gold_indices=sorted(found),
     )
