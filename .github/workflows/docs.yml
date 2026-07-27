@@ -1,0 +1,47 @@
+name: docs
+
+# Manual only, on purpose: deploying publishes the site, and enabling GitHub Pages
+# is the repository owner's decision. Run it from the Actions tab when you want it.
+# The build job below also runs on PRs that touch docs, so breakage is caught
+# without anything being published.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # mkdocs<2 pinned: the Material team warns MkDocs 2.0 is currently
+      # unlicensed and removes the plugin system entirely.
+      - run: pip install "mkdocs<2" mkdocs-material
+      - name: Build the site (strict - broken links fail)
+        run: mkdocs build --strict
+
+  deploy:
+    # Only when triggered by hand, and only from main.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # mkdocs<2 pinned: the Material team warns MkDocs 2.0 is currently
+      # unlicensed and removes the plugin system entirely.
+      - run: pip install "mkdocs<2" mkdocs-material
+      - run: mkdocs gh-deploy --force

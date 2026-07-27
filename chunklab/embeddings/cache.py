@@ -37,6 +37,37 @@ def default_cache_path() -> Path:
     return base / "chunklab" / "embeddings.sqlite3"
 
 
+def cache_stats(path: Path | None = None) -> dict:
+    """Vector count and on-disk size, without opening a writable connection."""
+    target = Path(path) if path is not None else default_cache_path()
+    if not target.exists():
+        return {"exists": False, "vectors": 0, "bytes": 0, "path": str(target)}
+
+    total = sum(
+        candidate.stat().st_size
+        for candidate in target.parent.glob(target.name + "*")
+        if candidate.is_file()
+    )
+    try:
+        db = sqlite3.connect(f"file:{target}?mode=ro", uri=True)
+        vectors = db.execute("SELECT COUNT(*) FROM vectors").fetchone()[0]
+        db.close()
+    except sqlite3.Error:
+        vectors = 0
+    return {"exists": True, "vectors": vectors, "bytes": total, "path": str(target)}
+
+
+def clear_cache(path: Path | None = None) -> int:
+    """Delete the cache and its journal files. Returns the bytes removed."""
+    target = Path(path) if path is not None else default_cache_path()
+    removed = 0
+    for candidate in sorted(target.parent.glob(target.name + "*")):
+        if candidate.is_file():
+            removed += candidate.stat().st_size
+            candidate.unlink()
+    return removed
+
+
 def caching_enabled() -> bool:
     return os.environ.get("CHUNKLAB_NO_CACHE", "").strip().lower() not in {"1", "true", "yes"}
 

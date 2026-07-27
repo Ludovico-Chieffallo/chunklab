@@ -6,7 +6,7 @@
 **Stability policy.** The schema is versioned by the top-level `schema_version` field
 (`"MAJOR.MINOR"`). Adding a field bumps MINOR; renaming, removing, or changing the meaning
 of an existing field bumps MAJOR and requires a deprecation entry in the
-[CHANGELOG](../CHANGELOG.md). Consumers should tolerate unknown fields.
+[CHANGELOG](https://github.com/Ludovico-Chieffallo/chunklab/blob/main/CHANGELOG.md). Consumers should tolerate unknown fields.
 
 Current version: **1.3**.
 

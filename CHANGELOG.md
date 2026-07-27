@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`chunklab check`** — a CI gate for retrieval regressions. Re-runs the pinned
+  configuration and compares it against a stored `report.json`; exit 1 on regression.
+  The default gate is the **paired bootstrap over questions**, the same test that gates
+  the recommendation: a build fails when the drop is larger than sampling noise explains,
+  not when a number moved. A tool that refuses to name a winner on noise must not fail a
+  build on noise either. `--max-drop` adds an opt-in blunt floor for teams that want one,
+  and is also what applies when the question set changed and no paired test is valid
+  (detected via `questions_sha256`, not assumed). `--update-baseline` records a new
+  baseline. Guide in `docs/ci.md`.
+- **Plugin API for custom chunking strategies** (`chunklab.plugins.register_chunker`, plus
+  automatic discovery of the `chunklab.chunkers` entry point). chunklab can only rank the
+  strategies it can see, and a comparison that excludes the splitter your pipeline
+  actually uses is beside the point. A chunker is anything with `chunk(document)`; the
+  factory receives `params` as keywords and `embedder=` only if its signature asks for
+  one. Built-in names cannot be shadowed and re-registration needs `replace=True`,
+  because a silent override would change what a config file means with no sign of it in
+  the report. Guide in `docs/extending.md`.
+- **`chunklab cache`** — shows where cached embeddings live, how many vectors and how much
+  disk they use; `--clear` removes them. The cache had no way to inspect or bound it.
+- **Documentation site** (`mkdocs.yml`, `docs/index.md`, mkdocs-material). The build runs
+  in `--strict` mode on any PR touching docs, so broken links fail; **deployment is
+  manual-only** (`workflow_dispatch` from `main`), since publishing is the repository
+  owner's decision. `mkdocs<2` is pinned: the Material team warns that MkDocs 2.0 is
+  currently unlicensed and removes the plugin system.
+
+### Added (earlier in this cycle)
 - **BM25 and hybrid retrieval, and a strategy × retriever matrix.** `retrieval.mode`
   already accepted `bm25` and `hybrid` in the config schema while only `dense` existed —
   a promise the configuration file made and the code did not keep. Both are now real.
