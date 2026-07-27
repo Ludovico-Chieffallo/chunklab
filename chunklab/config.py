@@ -21,8 +21,12 @@ class RetrievalConfig(BaseModel):
 
 class EvalConfig(BaseModel):
     fuzzy_threshold: float = Field(0.90, ge=0.0, le=1.0)
-    ranking_metric: Literal["recall_at_k", "mrr", "hit_rate_at_k"] = "recall_at_k"
+    ranking_metric: Literal["balanced", "recall_at_k", "mrr", "hit_rate_at_k"] = "balanced"
     min_floor_tokens: int = Field(200, ge=0)
+    # balanced = recall_at_k - balanced_lambda * (retrieved_tokens / min_retrieved_tokens - 1)
+    balanced_lambda: float = Field(0.05, ge=0.0)
+    bootstrap_resamples: int = Field(10_000, ge=100)
+    seed: int = 0
 
 
 class StrategyConfig(BaseModel):
@@ -32,11 +36,10 @@ class StrategyConfig(BaseModel):
     @field_validator("name")
     @classmethod
     def _known_strategy(cls, v: str) -> str:
-        from chunklab.chunkers.registry import available_strategies
+        from chunklab.chunkers.registry import HIDDEN_STRATEGIES, available_strategies
 
-        base = v
         known = available_strategies()
-        if base not in known:
+        if v not in known and v not in HIDDEN_STRATEGIES:
             raise ValueError(f"unknown strategy '{v}'; available: {', '.join(sorted(known))}")
         return v
 

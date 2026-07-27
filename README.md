@@ -45,20 +45,28 @@ Console output of exactly that command (regenerated from a real run, never hand-
 ```
 ChunkLab — 5 document(s), 129 scored questions, top_k=5, model=BAAI/bge-small-en-v1.5
 
- Strategy            ┃ recall@5 ┃ hit@5 ┃  MRR ┃ #chunks ┃ med_tok ┃ %tiny ┃ boundary 
-━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━
- ▶ structure         │     0.81 │  0.81 │ 0.63 │      71 │     346 │   25% │     100% 
-   fixed             │     0.79 │  0.79 │ 0.61 │      61 │     512 │    2% │       2% 
-   recursive         │     0.78 │  0.78 │ 0.59 │      62 │     458 │    5% │     100% 
-   semantic          │     0.72 │  0.72 │ 0.55 │      47 │     592 │    2% │     100% 
-   semantic_no_floor │     0.70 │  0.70 │ 0.53 │      59 │     470 │   24% │     100% 
+ Strategy      ┃ balanced ┃ recall@5 ┃  MRR ┃ prec@5 ┃ tok@5 ┃ #chunks ┃ med_tok ┃ %tiny ┃ boundary 
+━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━
+ ▶ structure   │     0.81 │     0.81 │ 0.63 │   0.17 │  2075 │      71 │     346 │   25% │     100% 
+   fixed       │     0.78 │     0.79 │ 0.61 │   0.18 │  2431 │      61 │     512 │    2% │       2% 
+   recursive   │     0.77 │     0.78 │ 0.59 │   0.16 │  2237 │      62 │     458 │    5% │     100% 
+   semantic    │     0.69 │     0.72 │ 0.55 │   0.15 │  3142 │      47 │     592 │    2% │     100% 
+   semantic_n… │     0.68 │     0.70 │ 0.53 │   0.14 │  2886 │      59 │     470 │   24% │     100% 
+recall/MRR/prec: retrieval quality at k=5 · tok@5: mean tokens retrieved per question (context cost)
+· %tiny: chunks under the size floor · boundary: chunks not cut mid-sentence · full definitions: 
+docs/metrics.md
 
 Recommendation:
-  Use STRUCTURE chunking (max_tokens=800). It gave the best retrieval on your corpus (recall@5 = 
-0.81). Note: 27% of structure chunks exceed the embedding model's max sequence length and may be 
-truncated at embed time.
+  No winner: 'structure' and 'fixed' are statistically indistinguishable on 129 scored questions 
+(recall difference +0.019, 95% CI [-0.062, +0.101] includes zero). Roughly 2276 scored questions 
+would be needed to separate them at the observed difference. Add questions before committing to a 
+strategy.
 ```
 <!-- END GENERATED EXAMPLE -->
+
+Note what the recommendation does here: the top two strategies are within noise of each other on 129 questions, so chunklab **refuses to name a winner** and tells you how many questions would settle it. A tool that always produces a confident answer is the problem this one exists to fix.
+
+The run is still decisive where the data supports it: `structure`, `fixed` and `recursive` are statistically tied on this corpus, but both `semantic` variants are *separated* from them (paired-bootstrap 95% CI of the recall difference excludes zero: +0.092 and +0.115). So the actionable output is "don't ship semantic chunking on this corpus, and pick among the top three on context cost" — which is exactly what the `balanced` ranking does, preferring `structure` at 2,075 retrieved tokens over `fixed` at 2,431.
 
 Open `chunklab_report/report.html` for the full drill-down and the chunk-boundary visualization. The example corpus itself is documented in [`examples/CORPUS.md`](examples/CORPUS.md) — five documents designed so that different strategies win on different documents.
 
@@ -99,7 +107,8 @@ retrieval:
   top_k: 5
 eval:
   fuzzy_threshold: 0.90
-  ranking_metric: recall_at_k    # recall_at_k | mrr | hit_rate_at_k
+  ranking_metric: balanced       # balanced (default) | recall_at_k | mrr | hit_rate_at_k
+  balanced_lambda: 0.05          # how hard to penalize context cost
   min_floor_tokens: 200
 strategies:
   - { name: fixed,     params: { chunk_size: 512, overlap: 64 } }

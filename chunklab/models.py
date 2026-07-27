@@ -59,6 +59,7 @@ class QuestionResult(BaseModel):
     split_across_chunks: bool = False
     gold_found_count: int = 0
     gold_total: int = 0
+    found_gold_indices: list[int] = Field(default_factory=list)
 
 
 class ChunkHealth(BaseModel):
@@ -81,12 +82,16 @@ class StrategyResult(BaseModel):
     hit_rate_at_k: float
     mrr: float
     precision_at_k: float
+    retrieved_tokens_at_k: float = 0.0  # mean tokens handed to the LLM per question
+    context_efficiency: float = 0.0  # found-gold tokens / retrieved tokens (mean)
+    balanced_score: float = 0.0  # recall penalized by relative context cost
+    ci95: tuple[float, float] | None = None  # bootstrap CI of the primary metric
     chunk_health: ChunkHealth
     per_question: list[QuestionResult] = Field(default_factory=list)
 
 
 class EvalReport(BaseModel):
-    schema_version: str = "1.0"  # public JSON contract; see docs/schema.md
+    schema_version: str = "1.1"  # public JSON contract; see docs/schema.md
     corpus_summary: dict = Field(default_factory=dict)
     strategy_results: list[StrategyResult] = Field(default_factory=list)  # ranked best-first
     recommendation: str = ""

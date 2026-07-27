@@ -8,7 +8,9 @@ retrieval:
 
 eval:
   fuzzy_threshold: 0.90
-  ranking_metric: recall_at_k    # recall_at_k | mrr | hit_rate_at_k
+  ranking_metric: balanced       # balanced (default) | recall_at_k | mrr | hit_rate_at_k
+  balanced_lambda: 0.05          # context-cost penalty; see docs/metrics.md
+  seed: 0                        # bootstrap RNG seed
   min_floor_tokens: 200
 
 strategies:

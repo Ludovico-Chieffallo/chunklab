@@ -8,7 +8,7 @@
 of an existing field bumps MAJOR and requires a deprecation entry in the
 [CHANGELOG](../CHANGELOG.md). Consumers should tolerate unknown fields.
 
-Current version: **1.0**.
+Current version: **1.1**.
 
 ## Top level
 
@@ -34,6 +34,8 @@ Current version: **1.0**.
 | `embedding_model_revision` | str \| null | Commit hash of the locally cached Hugging Face snapshot when unambiguously resolvable; `null` otherwise (e.g. fake backend, ambiguous cache). |
 | `top_k` | int | Retrieval cutoff used everywhere. |
 | `ranking_metric` | str | Metric used to rank `strategy_results`. |
+| `seed` | int | *(1.1)* RNG seed used for bootstrap resampling. |
+| `balanced_lambda` | float | *(1.1)* λ of the balanced ranking formula. |
 | `queries` | object | Map question id → query text, for scored questions. |
 | `chunklab_version` | str | Version of chunklab that produced the report. |
 | `corpus_sha256` | str | SHA-256 over `(doc_id, text)` pairs sorted by `doc_id`, each element NUL-terminated. Order-independent fingerprint of the parsed corpus. |
@@ -49,6 +51,10 @@ Current version: **1.0**.
 | `hit_rate_at_k` | float | Fraction of questions with ≥ 1 gold snippet found in top-k. |
 | `mrr` | float | Mean reciprocal rank of the first hit (0 when no hit in top-k). |
 | `precision_at_k` | float | Mean fraction of the top-k retrieved chunks that contain a gold snippet. |
+| `retrieved_tokens_at_k` | float | *(1.1)* Mean total tokens retrieved per question — downstream context cost. |
+| `context_efficiency` | float | *(1.1)* Mean found-gold tokens / retrieved tokens. |
+| `balanced_score` | float | *(1.1)* `recall_at_k` penalized by relative context cost; formula in docs/metrics.md. |
+| `ci95` | [float, float] \| null | *(1.1)* Bootstrap 95% CI of mean per-question recall. |
 | `chunk_health` | object | Retrieval-independent diagnostics (below). |
 | `per_question` | array | Per-question outcomes (below). |
 
@@ -75,6 +81,7 @@ Current version: **1.0**.
 | `first_hit_rank` | int \| null | Rank of the first hit. |
 | `split_across_chunks` | bool | No single chunk contained a missing gold snippet, but joining two adjacent retrieved chunks would — the chunker severed the answer. |
 | `gold_found_count` / `gold_total` | int | Gold snippets found / total for this question. |
+| `found_gold_indices` | array[int] | *(1.1)* Indices (into the question's `gold_snippets`) of the snippets found. |
 
 ## Determinism guarantee
 

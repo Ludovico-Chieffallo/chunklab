@@ -52,3 +52,41 @@ def test_empty():
     assert recall_at_k([]) == 0.0
     assert mrr([]) == 0.0
     assert precision_at_k([], 5) == 0.0
+
+
+def test_retrieved_tokens_at_k():
+    from chunklab.eval.metrics import retrieved_tokens_at_k
+
+    # each result retrieves 5 chunks of 1 token -> 5 per question
+    assert retrieved_tokens_at_k(RESULTS) == 5.0
+    assert retrieved_tokens_at_k([]) == 0.0
+
+
+def test_context_efficiency_hand_computed():
+    from chunklab.eval.metrics import context_efficiency
+
+    r = qr(True, 1, 1, 1, hit_ranks=(1,))
+    r.found_gold_indices = [0]
+    gold_tokens = {"q": [2]}  # found gold worth 2 tokens, retrieved 5 tokens
+    assert context_efficiency([r], gold_tokens) == 2 / 5
+
+    r_miss = qr(False, None, 0, 1)
+    assert context_efficiency([r_miss], {"q": [2]}) == 0.0
+
+
+def test_balanced_scores_hand_computed():
+    from chunklab.eval.metrics import balanced_scores
+
+    recalls = {"lean": 0.80, "fat": 0.90}
+    tokens = {"lean": 1000.0, "fat": 3000.0}
+    out = balanced_scores(recalls, tokens, lambda_=0.05)
+    assert out["lean"] == 0.80  # minimum pays no penalty
+    assert abs(out["fat"] - (0.90 - 0.05 * 2.0)) < 1e-9  # 3x tokens -> penalty 2*lambda
+
+
+def test_balanced_scores_zero_lambda_is_recall():
+    from chunklab.eval.metrics import balanced_scores
+
+    recalls = {"a": 0.7, "b": 0.9}
+    tokens = {"a": 100.0, "b": 900.0}
+    assert balanced_scores(recalls, tokens, lambda_=0.0) == recalls
