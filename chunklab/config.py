@@ -21,7 +21,7 @@ class RetrievalConfig(BaseModel):
 
 class EvalConfig(BaseModel):
     fuzzy_threshold: float = Field(0.90, ge=0.0, le=1.0)
-    ranking_metric: Literal["recall_at_k", "mrr", "hit_rate_at_k", "balanced"] = "recall_at_k"
+    ranking_metric: Literal["balanced", "recall_at_k", "mrr", "hit_rate_at_k"] = "balanced"
     min_floor_tokens: int = Field(200, ge=0)
     # balanced = recall_at_k - balanced_lambda * (retrieved_tokens / min_retrieved_tokens - 1)
     balanced_lambda: float = Field(0.05, ge=0.0)

@@ -120,3 +120,26 @@ def test_no_universal_winner(corpus_report):
         src: max(by_strategy, key=by_strategy.get) for src, by_strategy in per_doc.items()
     }
     assert len(set(winners.values())) >= 2, f"universal winner detected: {winners}"
+
+
+@pytest.mark.slow
+def test_balanced_changes_the_decision_on_real_data():
+    """The context penalty is not cosmetic: on the API-reference document it
+    reverses the top two strategies relative to raw recall.
+
+    `fixed` retrieves more recall but pays ~2.2x the context cost of
+    `structure`, so `balanced` prefers `structure`. This pins the claim in
+    docs/metrics.md that the metric changes decisions on non-degenerate data.
+    """
+    from chunklab.config import default_config
+    from chunklab.runner import run_evaluation
+
+    docs = load_documents(CORPUS / "api_reference.md")
+    questions = [q for q in load_questions(QUESTIONS) if "src:api_reference" in q.tags]
+
+    report = run_evaluation(docs, questions, default_config())
+    by = {r.strategy: r for r in report.strategy_results}
+
+    assert by["fixed"].recall_at_k > by["structure"].recall_at_k
+    assert by["structure"].balanced_score > by["fixed"].balanced_score
+    assert report.strategy_results[0].strategy == "structure"

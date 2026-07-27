@@ -27,7 +27,7 @@ retrieves is an entire document the LLM must re-search, at full context price. R
 strategies purely by `recall_at_k` therefore silently rewards size.
 `tests/test_degeneration.py` demonstrates the bias and pins the fix.
 
-The `balanced` ranking metric charges that context cost explicitly:
+The **default** ranking metric, `balanced`, charges that context cost explicitly:
 
 ```
 balanced(s) = recall_at_k(s) − λ · (retrieved_tokens_at_k(s) / T_min − 1)
@@ -59,6 +59,18 @@ With few questions, small metric differences are noise. chunklab therefore:
   the strategies statistically indistinguishable, estimates how many questions would be
   needed to separate them, and recommends nothing;
 - warns when fewer than 15 scored questions are provided.
+
+The gate is computed on per-question **recall**, not on `balanced`: the context penalty
+is an aggregate quantity with no per-question decomposition, so it cannot be bootstrapped
+over questions. Read a declared tie as "these strategies retrieve equally well on the
+evidence you supplied" — the ranking still orders them, and among tied strategies
+`balanced` prefers the one that spends the fewest tokens, which is a defensible
+tie-break even when recall cannot distinguish them.
+
+Ties are common and are not a failure of the tool. On the bundled example corpus the top
+three strategies are tied, while both `semantic` variants separate clearly (CI of the
+difference excludes zero) — a tie among the leaders plus a clear rejection of the
+laggards is a useful, honest result.
 
 ## Chunk-health diagnostics (retrieval-independent)
 

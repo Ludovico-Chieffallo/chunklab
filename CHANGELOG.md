@@ -21,6 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Anti-degeneration guard: hidden `whole_document` strategy plus tests proving that raw
   recall rewards it (the bias) and `balanced` demotes it (the fix).
 
+### Changed
+- **`balanced` is now the default `eval.ranking_metric`** (was `recall_at_k`). On the
+  example corpus this leaves the pooled ranking unchanged, but on a single-document
+  corpus it reverses the top two (`structure` over `fixed`, which buys +0.03 recall at
+  2.2x the context cost) — pinned by `test_balanced_changes_the_decision_on_real_data`.
+  Set `ranking_metric: recall_at_k` to restore the previous behavior.
+- The README quickstart now shows a declared statistical tie, because on 129 questions
+  the top two strategies genuinely are within noise.
+
 ## [0.2.0] - 2026-07-24
 
 ### Added

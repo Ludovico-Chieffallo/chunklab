@@ -34,7 +34,8 @@ def test_report_structure(report):
 
 def test_ranked_best_first(report):
     metric = report.corpus_summary["ranking_metric"]
-    values = [getattr(r, metric) for r in report.strategy_results]
+    attr = "balanced_score" if metric == "balanced" else metric
+    values = [getattr(r, attr) for r in report.strategy_results]
     assert values == sorted(values, reverse=True)
 
 
