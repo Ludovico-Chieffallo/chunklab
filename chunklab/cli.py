@@ -35,6 +35,11 @@ def run(
     no_cache: bool = typer.Option(
         False, "--no-cache", help="Re-embed everything instead of reusing cached vectors."
     ),
+    compare_retrievers: bool = typer.Option(
+        False,
+        "--compare-retrievers",
+        help="Evaluate every strategy under dense, BM25 and hybrid retrieval.",
+    ),
 ) -> None:
     """Run the chunking evaluation and write the reports."""
     from chunklab.config import load_config
@@ -48,6 +53,8 @@ def run(
         cfg.output.dir = str(out)
     if no_cache:
         cfg.embedding.cache = False
+    if compare_retrievers:
+        cfg.retrieval.compare = ["dense", "bm25", "hybrid"]
 
     starting = "Running evaluation (first run downloads the embedding model)..."
     with console.status(starting) as status:

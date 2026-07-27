@@ -62,6 +62,55 @@ whose recall lead is larger than the penalty — which is the intended behaviour
 pinned by a slow test. On this corpus no recall gap is small enough for the penalty to
 change first place; the metric breaks near-ties, it does not manufacture upsets.
 
+## Retrieval mode
+
+Chunking is only half of the pipeline. `--compare-retrievers` (or
+`retrieval.compare: [dense, bm25, hybrid]`) evaluates every strategy under every
+retriever and reports a **strategy × retriever matrix**, because a strategy ranked under
+one retriever is a statement about that pairing, not about chunking in general.
+
+- **`dense`** — cosine over the embedding model. Generalises across wording, blurs exact
+  tokens.
+- **`bm25`** — Okapi BM25, implemented in-tree (no dependency). Matches exact terms:
+  identifiers, clause numbers, error codes, product names. Tokenization is word-based,
+  falling back to **character bigrams** for scripts written without spaces (Han, Kana,
+  Hangul, Thai), where a word tokenizer would emit one token per sentence.
+- **`hybrid`** — Reciprocal Rank Fusion, `score = Σ 1/(60 + rank)`. Fuses *ranks*, not
+  scores: BM25 scores are unbounded idf sums and cosines live in [-1, 1], so any weighted
+  sum would need per-corpus calibration chunklab cannot do honestly. Ties are broken by
+  best rank achieved and then chunk id, so the result does not depend on the order the
+  retrievers were listed in.
+
+`balanced` normalizes on the cheapest cell of the whole matrix, so with `compare` set the
+context penalty prices retrievers against each other too, not just strategies.
+
+### What this measured, and a warning about it
+
+On the bundled example corpus, switching from `dense` to `hybrid` improved recall@5 for
+**every** strategy, by more than the spread between strategies:
+
+| strategy | dense | bm25 | hybrid | hybrid − dense | 95% CI |
+|---|---|---|---|---|---|
+| `fixed` | 0.814 | 0.898 | 0.953 | **+0.140** | [+0.078, +0.209] |
+| `semantic_no_floor` | 0.711 | 0.920 | 0.873 | **+0.163** | [+0.101, +0.225] |
+| `structure` | 0.810 | 0.929 | 0.926 | **+0.116** | [+0.062, +0.178] |
+| `semantic` | 0.734 | 0.912 | 0.858 | **+0.124** | [+0.062, +0.186] |
+| `recursive` | 0.822 | 0.873 | 0.920 | **+0.098** | [+0.039, +0.160] |
+
+**Do not generalise that table.** On QASPER, whose questions were written by people who
+had read only the abstract, the same comparison is significant for **two strategies out of
+five**: `semantic` (+0.131) and `semantic_no_floor` (+0.107); for `fixed`, `recursive` and
+`structure` the interval includes zero.
+
+The likely reason is a defect in the example corpus, not a property of BM25: its questions
+and its documents were written by the same author, so the questions reuse the documents'
+vocabulary — precisely what lexical matching rewards. Real users do not have that
+advantage, and QASPER's protocol removes it by construction.
+
+Which is the point of the matrix: whether the retriever or the chunker dominates is a
+property of *your* corpus and *your* questions, and it is measurable rather than
+guessable.
+
 ## Statistical honesty
 
 With few questions, small metric differences are noise. chunklab therefore:
