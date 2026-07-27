@@ -116,6 +116,91 @@ def validate(
 
 
 @app.command()
+def check(
+    docs: Path = typer.Option(..., "--docs", help="Document file or directory."),
+    questions: Path = typer.Option(..., "--questions", help="questions.yaml path."),
+    baseline: Path = typer.Option(..., "--baseline", help="Baseline report.json to compare to."),
+    config: Path | None = typer.Option(None, "--config", help="config.yaml path (optional)."),
+    strategy: str | None = typer.Option(
+        None, "--strategy", help="Strategy to track (default: the baseline's winner)."
+    ),
+    max_drop: float | None = typer.Option(
+        None, "--max-drop", help="Also fail if recall drops by more than this, noise or not."
+    ),
+    update_baseline: bool = typer.Option(
+        False, "--update-baseline", help="Overwrite the baseline with this run and exit 0."
+    ),
+) -> None:
+    """Fail when retrieval quality has regressed since a baseline run (for CI).
+
+    A build fails when the drop is larger than sampling noise explains — the same
+    paired bootstrap the recommendation uses. `--max-drop` adds a blunt floor.
+    """
+    from chunklab.check import compare, load_baseline
+    from chunklab.config import load_config
+    from chunklab.report.json_report import write_json_report
+    from chunklab.runner import evaluate
+
+    cfg = load_config(config)
+    with console.status("Running evaluation...") as status:
+        report = evaluate(docs=docs, questions=questions, config=cfg, on_progress=status.update)
+
+    if update_baseline:
+        write_json_report(report, baseline)
+        console.print(f"Baseline written to [bold]{baseline}[/bold].")
+        return
+
+    outcome = compare(load_baseline(baseline), report, strategy=strategy, max_drop=max_drop)
+
+    console.print(
+        f"\n[bold]{outcome.strategy} + {outcome.retriever}[/bold]: "
+        f"recall {outcome.baseline_recall:.3f} → {outcome.current_recall:.3f} "
+        f"({outcome.difference:+.3f})"
+    )
+    if outcome.ci95:
+        console.print(f"paired 95% CI [{outcome.ci95[0]:+.3f}, {outcome.ci95[1]:+.3f}]")
+    for note in outcome.notes:
+        console.print(f"[yellow]Note:[/yellow] {note}")
+
+    if outcome.ok:
+        console.print("[green]No regression detected.[/green]")
+        return
+    for failure in outcome.failures:
+        console.print(f"[red]FAIL[/red] {failure}")
+    raise typer.Exit(1)
+
+
+@app.command()
+def cache(
+    clear: bool = typer.Option(False, "--clear", help="Delete the embedding cache."),
+) -> None:
+    """Show where cached embeddings live and how much space they use."""
+    from chunklab.embeddings.cache import cache_stats, clear_cache, default_cache_path
+
+    path = default_cache_path()
+    if clear:
+        removed = clear_cache()
+        console.print(
+            f"Removed [bold]{removed:,}[/bold] bytes from {path}."
+            if removed
+            else f"Nothing to remove at {path}."
+        )
+        return
+
+    stats = cache_stats()
+    if not stats["exists"]:
+        console.print(f"No cache yet at [bold]{path}[/bold].")
+        return
+    console.print(
+        f"Embedding cache: [bold]{path}[/bold]\n"
+        f"  vectors: {stats['vectors']:,}\n"
+        f"  size:    {stats['bytes'] / 1e6:.1f} MB\n"
+        "Safe to delete at any time (chunklab re-embeds what it needs); "
+        "CHUNKLAB_CACHE_DIR moves it, CHUNKLAB_NO_CACHE=1 disables it."
+    )
+
+
+@app.command()
 def strategies() -> None:
     """List available chunking strategies and their default parameters."""
     from rich.table import Table

@@ -127,6 +127,8 @@ ERROR q1 (not_found): gold snippet not found in the corpus (closest match 81%):
 ```
 
 The full workflow, honestly timed, is in [`docs/getting-started.md`](docs/getting-started.md).
+Gate a pipeline on retrieval regressions with `chunklab check` — [`docs/ci.md`](docs/ci.md).
+Put your own splitter in the comparison: [`docs/extending.md`](docs/extending.md).
 How the metrics are defined and why `balanced` is the default: [`docs/metrics.md`](docs/metrics.md).
 Results on independent, human-annotated corpora, with every conversion choice and drop rate
 reported: [`docs/benchmarks.md`](docs/benchmarks.md).

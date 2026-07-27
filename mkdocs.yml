@@ -1,0 +1,40 @@
+site_name: chunklab
+site_description: Find out whether the difference between chunking strategies is real.
+repo_url: https://github.com/Ludovico-Chieffallo/chunklab
+repo_name: Ludovico-Chieffallo/chunklab
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/weather-sunny, name: Light mode}
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Metrics and honesty: metrics.md
+  - Public benchmarks: benchmarks.md
+  - Use in CI: ci.md
+  - Add your own strategy: extending.md
+  - JSON schema: schema.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.superfences
+  - pymdownx.highlight: {anchor_linenums: true}
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Ludovico-Chieffallo/chunklab
