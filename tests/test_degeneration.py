@@ -52,10 +52,7 @@ def test_degenerate_strategy_does_not_win(inputs):
     assert report.strategy_results[0].strategy != "whole_document"
     by_name = {r.strategy: r for r in report.strategy_results}
     # And its penalty must be material, not a rounding artifact.
-    assert (
-        by_name["whole_document"].balanced_score
-        < by_name["whole_document"].recall_at_k - 0.10
-    )
+    assert by_name["whole_document"].balanced_score < by_name["whole_document"].recall_at_k - 0.10
 
 
 def test_whole_document_hidden_from_listing():

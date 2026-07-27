@@ -3,9 +3,7 @@
 from chunklab.embeddings.base import Embedder
 
 
-def make_embedder(
-    backend: str, model: str, cache: bool = True, prefixes: bool = True
-) -> Embedder:
+def make_embedder(backend: str, model: str, cache: bool = True, prefixes: bool = True) -> Embedder:
     if backend == "local":
         from chunklab.embeddings.cache import CachedEmbedder, caching_enabled
         from chunklab.embeddings.local import LocalEmbedder

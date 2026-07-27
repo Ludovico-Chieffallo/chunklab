@@ -50,7 +50,5 @@ def load_documents(docs_path: str | Path) -> list[Document]:
         try:
             documents.append(get_loader(file.suffix).load(file))
         except Exception as exc:  # a raw parser traceback does not name the file
-            raise DocumentLoadError(
-                f"could not read {file}: {type(exc).__name__}: {exc}"
-            ) from exc
+            raise DocumentLoadError(f"could not read {file}: {type(exc).__name__}: {exc}") from exc
     return documents

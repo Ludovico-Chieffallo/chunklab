@@ -68,6 +68,4 @@ def balanced_scores(
     if not positive:
         return dict(recalls)
     t_min = min(positive)
-    return {
-        s: recalls[s] - lambda_ * (max(tokens[s], t_min) / t_min - 1.0) for s in recalls
-    }
+    return {s: recalls[s] - lambda_ * (max(tokens[s], t_min) / t_min - 1.0) for s in recalls}

@@ -43,20 +43,35 @@ def test_estimate_questions_to_separate():
 
 def _strategy_result(name: str, per_q_scores: list[float]) -> StrategyResult:
     health = ChunkHealth(
-        num_chunks=10, tokens_min=100, tokens_median=400, tokens_mean=400,
-        tokens_max=800, pct_tiny=0.0, pct_oversized=0.0, boundary_health=1.0,
+        num_chunks=10,
+        tokens_min=100,
+        tokens_median=400,
+        tokens_mean=400,
+        tokens_max=800,
+        pct_tiny=0.0,
+        pct_oversized=0.0,
+        boundary_health=1.0,
     )
     per_question = [
         QuestionResult(
-            question_id=f"q{i}", strategy=name, retrieved=[], hit=s > 0,
-            gold_found_count=int(s * 4), gold_total=4,
+            question_id=f"q{i}",
+            strategy=name,
+            retrieved=[],
+            hit=s > 0,
+            gold_found_count=int(s * 4),
+            gold_total=4,
         )
         for i, s in enumerate(per_q_scores)
     ]
     mean = sum(per_q_scores) / len(per_q_scores)
     return StrategyResult(
-        strategy=name, recall_at_k=mean, hit_rate_at_k=mean, mrr=mean,
-        precision_at_k=mean, chunk_health=health, per_question=per_question,
+        strategy=name,
+        recall_at_k=mean,
+        hit_rate_at_k=mean,
+        mrr=mean,
+        precision_at_k=mean,
+        chunk_health=health,
+        per_question=per_question,
     )
 
 
