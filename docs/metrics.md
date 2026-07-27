@@ -84,6 +84,17 @@ one retriever is a statement about that pairing, not about chunking in general.
 `balanced` normalizes on the cheapest cell of the whole matrix, so with `compare` set the
 context penalty prices retrievers against each other too, not just strategies.
 
+### Reproducing the tables below
+
+```bash
+chunklab run --docs examples/corpus --questions examples/questions.yaml --compare-retrievers
+```
+
+The confidence intervals come from a paired bootstrap between the same strategy under two
+retrievers, over the per-question recalls in `report.json`. The QASPER figures use the
+corpus prepared by `scripts/benchmarks/prepare_qasper.py` (see
+[public benchmarks](benchmarks.md)).
+
 ### What this measured, and a warning about it
 
 On the bundled example corpus, switching from `dense` to `hybrid` improved recall@5 for
@@ -110,6 +121,31 @@ advantage, and QASPER's protocol removes it by construction.
 Which is the point of the matrix: whether the retriever or the chunker dominates is a
 property of *your* corpus and *your* questions, and it is measurable rather than
 guessable.
+
+## Results are specific to your embedding model
+
+Every ranking chunklab produces is a statement about *one* embedding model. That is not a
+hedge — it is measured. Running the identical corpus and questions under a second model
+changes the answer:
+
+| | `bge-small-en-v1.5` | `all-MiniLM-L6-v2` |
+|---|---|---|
+| example corpus, winner | `recursive` (0.822) | **`fixed`** (0.721) |
+| example corpus, order | recursive, structure, fixed, semantic, semantic_no_floor | fixed, recursive, structure, semantic_no_floor, semantic |
+| QASPER, winner | `recursive` (0.402) | `recursive` (0.386) |
+| QASPER, order | recursive, structure, semantic, fixed, semantic_no_floor | recursive, semantic, structure, semantic_no_floor, fixed |
+
+Reproduce by setting `embedding.model` and re-running the command above.
+
+The winner changed on one of the two corpora, and the ordering changed on both. So:
+
+**Run chunklab with the embedding model you actually deploy.** Validating with the default
+and shipping something else means acting on a conclusion that was never tested — the kind
+of silent mismatch this tool exists to expose, and one it can commit itself if you let it.
+
+If you have not chosen a model yet, this is also the honest reading: the model choice
+interacts with the chunking choice, so pick the model first and compare strategies under
+it, rather than treating the two as independent.
 
 ## Statistical honesty
 

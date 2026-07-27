@@ -1,11 +1,15 @@
 name: docs
 
-# Manual only, on purpose: deploying publishes the site, and enabling GitHub Pages
-# is the repository owner's decision. Run it from the Actions tab when you want it.
-# The build job below also runs on PRs that touch docs, so breakage is caught
-# without anything being published.
+# Publishes on every push to main that touches the docs. Pull requests only build,
+# so a broken link fails review rather than the live site.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
   pull_request:
     paths:
       - "docs/**"
@@ -30,8 +34,8 @@ jobs:
         run: mkdocs build --strict
 
   deploy:
-    # Only when triggered by hand, and only from main.
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    # Never from a pull request: a fork could otherwise publish to the live site.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:

@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **A stale claim in the README was false.** It said both `semantic` variants were
+  statistically separated from the top three strategies (CIs "+0.092 and +0.115"), and
+  quoted token costs of 2,075 and 2,431. Re-measured: only `semantic_no_floor` is
+  separated from all three (+0.111, +0.099, +0.103); `semantic` is not distinguishable
+  from `recursive` or `structure`. The token figures were pre-prefix values. Corrected,
+  and now guarded.
+
 ### Added
+- **Every quantitative claim on the front page must have a source** (`tests/test_claims.py`,
+  replacing `test_readme_claims.py`). This project has shipped a false number twice, both
+  times written from memory and caught by hand. Each decimal, percentage or
+  thousands-separated magnitude in the README and docs index is listed with the command
+  that reproduces it; adding one without a source fails, and so does keeping an entry for
+  a claim no longer made. Inline code is deliberately **not** exempt — a number in
+  backticks is still a claim. Pages carrying measured tables must contain a Reproducing
+  section with a runnable command.
+- **`ruff format` is applied and gated in CI**, in an isolated commit (12 files, no
+  behaviour change).
 - **`chunklab check`** — a CI gate for retrieval regressions. Re-runs the pinned
   configuration and compares it against a stored `report.json`; exit 1 on regression.
   The default gate is the **paired bootstrap over questions**, the same test that gates
