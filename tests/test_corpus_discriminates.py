@@ -123,23 +123,24 @@ def test_no_universal_winner(corpus_report):
 
 
 @pytest.mark.slow
-def test_balanced_changes_the_decision_on_real_data():
-    """The context penalty is not cosmetic: on the API-reference document it
-    reverses the top two strategies relative to raw recall.
+def test_balanced_reorders_strategies_that_recall_ties(corpus_report):
+    """The context penalty is not cosmetic: it reverses `fixed` and `structure`.
 
-    `fixed` retrieves more recall but pays ~2.2x the context cost of
-    `structure`, so `balanced` prefers `structure`. This pins the claim in
-    docs/metrics.md that the metric changes decisions on non-degenerate data.
+    On the full corpus `fixed` retrieves marginally more (recall +0.004) while
+    spending ~15% more context, so `balanced` ranks `structure` above it. This
+    pins the claim in docs/metrics.md that the metric breaks near-ties in favour
+    of cheaper context.
+
+    It deliberately does *not* claim `balanced` overturns the winner: with the
+    embedding model's trained prefixes applied, no slice of this corpus has a
+    recall gap small enough for the penalty to flip first place, and
+    docs/metrics.md says a real recall gap should survive the penalty.
     """
-    from chunklab.config import default_config
-    from chunklab.runner import run_evaluation
+    by = {r.strategy: r for r in corpus_report.strategy_results}
 
-    docs = load_documents(CORPUS / "api_reference.md")
-    questions = [q for q in load_questions(QUESTIONS) if "src:api_reference" in q.tags]
-
-    report = run_evaluation(docs, questions, default_config())
-    by = {r.strategy: r for r in report.strategy_results}
-
-    assert by["fixed"].recall_at_k > by["structure"].recall_at_k
+    assert by["fixed"].recall_at_k > by["structure"].recall_at_k, "premise changed"
+    assert by["fixed"].retrieved_tokens_at_k > by["structure"].retrieved_tokens_at_k
     assert by["structure"].balanced_score > by["fixed"].balanced_score
-    assert report.strategy_results[0].strategy == "structure"
+
+    ranked = [r.strategy for r in corpus_report.strategy_results]
+    assert ranked.index("structure") < ranked.index("fixed")

@@ -14,7 +14,8 @@ class DenseRetriever:
         self._matrix = embedder.embed([c.text for c in chunks])
 
     def retrieve(self, query: str, top_k: int) -> list[RetrievedChunk]:
-        q = self.embedder.embed([query])[0]
+        # embed_queries, not embed: asymmetric models prefix the query side.
+        q = self.embedder.embed_queries([query])[0]
         scores = self._matrix @ q
         k = min(top_k, len(self.chunks))
         # stable sort so score ties break by chunk order, deterministically

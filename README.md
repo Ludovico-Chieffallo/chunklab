@@ -47,18 +47,18 @@ ChunkLab — 5 document(s), 129 scored questions, top_k=5, model=BAAI/bge-small-
 
  Strategy      ┃ balanced ┃ recall@5 ┃  MRR ┃ prec@5 ┃ tok@5 ┃ #chunks ┃ med_tok ┃ %tiny ┃ boundary 
 ━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━
- ▶ structure   │     0.81 │     0.81 │ 0.63 │   0.17 │  2075 │      71 │     346 │   25% │     100% 
-   fixed       │     0.78 │     0.79 │ 0.61 │   0.18 │  2431 │      61 │     512 │    2% │       2% 
-   recursive   │     0.77 │     0.78 │ 0.59 │   0.16 │  2237 │      62 │     458 │    5% │     100% 
-   semantic    │     0.70 │     0.73 │ 0.56 │   0.15 │  2968 │      49 │     593 │    0% │     100% 
-   semantic_n… │     0.67 │     0.69 │ 0.53 │   0.14 │  2661 │      62 │     402 │   24% │     100% 
+ ▶ recursive   │     0.82 │     0.82 │ 0.61 │   0.17 │  2228 │      62 │     458 │    5% │     100% 
+   structure   │     0.81 │     0.81 │ 0.65 │   0.17 │  2128 │      71 │     346 │   25% │     100% 
+   fixed       │     0.81 │     0.81 │ 0.62 │   0.19 │  2447 │      61 │     512 │    2% │       2% 
+   semantic    │     0.72 │     0.73 │ 0.55 │   0.15 │  2862 │      49 │     593 │    0% │     100% 
+   semantic_n… │     0.70 │     0.71 │ 0.53 │   0.15 │  2648 │      62 │     402 │   24% │     100% 
 recall/MRR/prec: retrieval quality at k=5 · tok@5: mean tokens retrieved per question (context cost)
 · %tiny: chunks under the size floor · boundary: chunks not cut mid-sentence · full definitions: 
 docs/metrics.md
 
 Recommendation:
-  No winner: 'structure' and 'fixed' are statistically indistinguishable on 129 scored questions 
-(recall difference +0.019, 95% CI [-0.062, +0.101] includes zero). Roughly 2276 scored questions 
+  No winner: 'recursive' and 'structure' are statistically indistinguishable on 129 scored questions
+(recall difference +0.012, 95% CI [-0.074, +0.097] includes zero). Roughly 6938 scored questions 
 would be needed to separate them at the observed difference. Add questions before committing to a 
 strategy.
 ```

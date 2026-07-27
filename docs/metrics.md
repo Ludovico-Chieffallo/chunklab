@@ -48,6 +48,20 @@ to break recall ties in favor of cheaper context, not enough to override a real 
 gap. Raising λ to 0.10 makes context cost dominate; lowering it to 0.02 makes `balanced`
 nearly identical to `recall_at_k`. Set it per your own downstream token budget.
 
+What this looks like on the example corpus (129 questions, `bge-small-en-v1.5`):
+
+| strategy | recall@5 | tok@5 | balanced |
+|---|---|---|---|
+| `recursive` | 0.822 | 2228 | 0.819 |
+| `structure` | 0.810 | 2128 | **0.810** |
+| `fixed` | 0.814 | 2447 | 0.807 |
+
+`fixed` retrieves marginally more than `structure` (+0.004 recall) while spending 15% more
+context, and `balanced` ranks `structure` above it. It does **not** overturn `recursive`,
+whose recall lead is larger than the penalty — which is the intended behaviour, and is
+pinned by a slow test. On this corpus no recall gap is small enough for the penalty to
+change first place; the metric breaks near-ties, it does not manufacture upsets.
+
 ## Statistical honesty
 
 With few questions, small metric differences are noise. chunklab therefore:

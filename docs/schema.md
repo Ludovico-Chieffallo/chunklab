@@ -8,7 +8,7 @@
 of an existing field bumps MAJOR and requires a deprecation entry in the
 [CHANGELOG](../CHANGELOG.md). Consumers should tolerate unknown fields.
 
-Current version: **1.1**.
+Current version: **1.2**.
 
 ## Top level
 
@@ -36,6 +36,8 @@ Current version: **1.1**.
 | `ranking_metric` | str | Metric used to rank `strategy_results`. |
 | `seed` | int | *(1.1)* RNG seed used for bootstrap resampling. |
 | `balanced_lambda` | float | *(1.1)* λ of the balanced ranking formula. |
+| `embedding_prefixes` | bool | *(1.2)* Whether the model's trained query/passage instruction prefixes were applied. |
+| `detected_languages` | object | *(1.2)* Map document id → detected language (ISO code) or non-Latin script name. Documents whose language could not be determined confidently are omitted, so this map may be empty or partial. Advisory only: it drives a warning, never a decision. |
 | `queries` | object | Map question id → query text, for scored questions. |
 | `chunklab_version` | str | Version of chunklab that produced the report. |
 | `corpus_sha256` | str | SHA-256 over `(doc_id, text)` pairs sorted by `doc_id`, each element NUL-terminated. Order-independent fingerprint of the parsed corpus. |

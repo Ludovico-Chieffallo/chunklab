@@ -3,12 +3,14 @@
 from chunklab.embeddings.base import Embedder
 
 
-def make_embedder(backend: str, model: str, cache: bool = True) -> Embedder:
+def make_embedder(
+    backend: str, model: str, cache: bool = True, prefixes: bool = True
+) -> Embedder:
     if backend == "local":
         from chunklab.embeddings.cache import CachedEmbedder, caching_enabled
         from chunklab.embeddings.local import LocalEmbedder
 
-        embedder = LocalEmbedder(model)
+        embedder = LocalEmbedder(model, prefixes=prefixes)
         # `fake` is already cheap and deterministic; caching it would only put
         # test vectors in the user's cache.
         if cache and caching_enabled():

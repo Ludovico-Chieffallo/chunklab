@@ -15,6 +15,9 @@ class EmbeddingConfig(BaseModel):
     # Reuse vectors across runs and strategies. Keyed by model revision, so it
     # never serves vectors from different weights. CHUNKLAB_NO_CACHE=1 also wins.
     cache: bool = True
+    # Apply the query/passage instruction prefixes the model was trained with.
+    # Mandatory for E5; set false only to reproduce a run made without them.
+    prefixes: bool = True
 
 
 class RetrievalConfig(BaseModel):

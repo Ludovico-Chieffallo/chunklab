@@ -121,6 +121,29 @@ chunklab run --docs ./docs --questions questions.yaml --no-cache
 `CHUNKLAB_CACHE_DIR` moves the cache, `CHUNKLAB_NO_CACHE=1` disables it everywhere, and
 deleting `~/.cache/chunklab/` is always safe.
 
+## Corpora that are not in English
+
+The default model, `BAAI/bge-small-en-v1.5`, is English-only. Pointed at an Italian,
+German or Japanese corpus it does not fail — it just retrieves badly, and every number in
+the report understates what a suitable model would do. chunklab detects the corpus
+language and warns when the two disagree; switch model in `config.yaml`:
+
+```yaml
+embedding:
+  model: intfloat/multilingual-e5-small
+```
+
+Instruction prefixes are handled for you. E5 models are trained with literal `query: ` and
+`passage: ` prefixes and lose a lot of quality without them; BGE models take a retrieval
+instruction on the query side only. chunklab applies whichever scheme the configured model
+was trained with, on the right side of the comparison, and caches the two sides
+separately. Models it does not recognise get no prefix, because inventing one is worse
+than omitting it. `embedding.prefixes: false` reproduces a run made before this existed.
+
+Sentence segmentation understands the terminators of other scripts (`。`, `？`, `।`, `؟`),
+so semantic and structure chunking work on CJK and Indic text rather than treating a whole
+document as one sentence.
+
 ## What the report will tell you about your files
 
 Two document problems are easy to miss and both are reported rather than swallowed:

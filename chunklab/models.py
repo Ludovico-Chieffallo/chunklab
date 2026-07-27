@@ -93,7 +93,7 @@ class StrategyResult(BaseModel):
 
 
 class EvalReport(BaseModel):
-    schema_version: str = "1.1"  # public JSON contract; see docs/schema.md
+    schema_version: str = "1.2"  # public JSON contract; see docs/schema.md
     corpus_summary: dict = Field(default_factory=dict)
     strategy_results: list[StrategyResult] = Field(default_factory=list)  # ranked best-first
     recommendation: str = ""
