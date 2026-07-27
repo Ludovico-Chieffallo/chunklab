@@ -12,6 +12,9 @@ from chunklab.models import Question
 class EmbeddingConfig(BaseModel):
     backend: Literal["local", "openai", "fake"] = "local"
     model: str = "BAAI/bge-small-en-v1.5"
+    # Reuse vectors across runs and strategies. Keyed by model revision, so it
+    # never serves vectors from different weights. CHUNKLAB_NO_CACHE=1 also wins.
+    cache: bool = True
 
 
 class RetrievalConfig(BaseModel):

@@ -27,6 +27,10 @@ def get_loader(extension: str) -> DocumentLoader:
     )
 
 
+class DocumentLoadError(RuntimeError):
+    """A file could not be read, with the file named."""
+
+
 def load_documents(docs_path: str | Path) -> list[Document]:
     """Load a single file or every supported file in a directory (recursive)."""
     path = Path(docs_path)
@@ -40,4 +44,13 @@ def load_documents(docs_path: str | Path) -> list[Document]:
         raise FileNotFoundError(f"docs path not found: {path}")
     if not files:
         raise ValueError(f"no supported documents found under {path}")
-    return [get_loader(p.suffix).load(p) for p in files]
+
+    documents: list[Document] = []
+    for file in files:
+        try:
+            documents.append(get_loader(file.suffix).load(file))
+        except Exception as exc:  # a raw parser traceback does not name the file
+            raise DocumentLoadError(
+                f"could not read {file}: {type(exc).__name__}: {exc}"
+            ) from exc
+    return documents

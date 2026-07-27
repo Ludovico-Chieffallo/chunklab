@@ -7,7 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`token_spans` was quadratic on non-ASCII text.** Mapping byte offsets back to
+  character offsets scanned the whole offset map whenever a token boundary fell inside a
+  multi-byte character. On CJK text, where that happens at nearly every boundary, 48k
+  characters took ~19 s; it now takes ~21 ms (binary search), and scales linearly.
+  Output is unchanged, verified against the previous implementation on ASCII, accented,
+  CJK, Cyrillic, emoji and combining-character text.
+- **The abbreviation list in the sentence splitter never matched.** Punctuation was
+  stripped before whitespace, so the candidate word kept its trailing dot (`dr.` was
+  compared against `dr`). Every `Dr.`, `e.g.`, `Inc.` was splitting a sentence in two,
+  which affected semantic chunking, boundary-health diagnostics and the bootstrapper.
+- **A byte-order mark erased a markdown document's structure.** A leading U+FEFF, which
+  Windows editors add invisibly, detached the first heading from the start of its line
+  and left the document with *zero* elements — silently degrading `structure` chunking.
+- **A non-UTF-8 document aborted the whole run** with a `UnicodeDecodeError` that did not
+  say which file was at fault. Text files are now decoded UTF-8 → cp1252 → replacement,
+  the encoding used is recorded in `Document.metadata`, and a fallback decode raises a
+  warning in the report because mojibake degrades retrieval without erroring.
+- Any loader failure is now raised as `DocumentLoadError` **naming the file**, instead of
+  a bare parser traceback from the middle of a directory scan.
+
 ### Added
+- **On-disk embedding cache**, on by default. Comparing five strategies re-embeds much of
+  the same text, and re-running after editing questions re-embeds an unchanged corpus;
+  vectors are memoized in a SQLite store under `~/.cache/chunklab/`. The key covers the
+  model *and* its resolved revision, so a cache that outlives a model upgrade can never
+  serve vectors from the old weights. Disable with `--no-cache`, `embedding.cache: false`
+  or `CHUNKLAB_NO_CACHE=1`; relocate with `CHUNKLAB_CACHE_DIR`. Measured on the example
+  corpus: 15.9 s → 7.7 s, with a byte-identical report.
+- **Progress reporting during a run** (`on_progress` callback on `evaluate` /
+  `run_evaluation`, wired to the CLI spinner): embedding dominates the runtime and
+  silence there read as a hang.
+- A corpus whose documents contain **no extractable text** is now an error rather than a
+  meaningless result, and a partially empty corpus warns — the scanned-PDF case.
 - **`chunklab validate --docs ... --questions ...`**: checks a question set against the
   corpus before an evaluation is spent on it. Flags gold snippets that are missing or
   only fuzzily present (printing the *verbatim* source text and its offset, ready to

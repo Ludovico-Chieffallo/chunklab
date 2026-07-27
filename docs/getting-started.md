@@ -108,3 +108,25 @@ Change one thing at a time — chunk size, overlap, `max_tokens` — and re-run.
 report (`report.json`, a [versioned contract](schema.md)) makes it easy to diff runs
 programmatically, and `corpus_summary` records the exact corpus, questions, model
 revision and seed behind every number.
+
+Re-runs are cheap because embeddings are cached on disk under `~/.cache/chunklab/`. The
+cache key covers the embedding model *and* its resolved revision, so upgrading the model
+cannot serve you vectors from the old weights. To measure a cold run, or if you suspect
+the cache:
+
+```bash
+chunklab run --docs ./docs --questions questions.yaml --no-cache
+```
+
+`CHUNKLAB_CACHE_DIR` moves the cache, `CHUNKLAB_NO_CACHE=1` disables it everywhere, and
+deleting `~/.cache/chunklab/` is always safe.
+
+## What the report will tell you about your files
+
+Two document problems are easy to miss and both are reported rather than swallowed:
+
+- **A scanned PDF has no extractable text.** It contributes nothing to retrieval. If
+  every document is like that, the run stops instead of printing meaningless numbers;
+  run OCR first.
+- **A file that is not valid UTF-8** is decoded with a fallback and flagged. If accented
+  characters look wrong in the report, re-save the file as UTF-8.
