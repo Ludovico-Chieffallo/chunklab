@@ -61,6 +61,43 @@ def run(
 
 
 @app.command()
+def validate(
+    docs: Path = typer.Option(..., "--docs", help="Document file or directory."),
+    questions: Path = typer.Option(..., "--questions", help="questions.yaml path."),
+    config: Path | None = typer.Option(None, "--config", help="config.yaml path (optional)."),
+) -> None:
+    """Check a question set against the corpus, before spending a run on it.
+
+    Exits non-zero when errors are found, so it can gate CI.
+    """
+    from chunklab.config import load_config, load_questions
+    from chunklab.loaders.registry import load_documents
+    from chunklab.validation import validate_questions
+
+    cfg = load_config(config)
+    documents = load_documents(docs)
+    qs = load_questions(questions)
+    report = validate_questions(qs, documents, fuzzy_threshold=cfg.eval.fuzzy_threshold)
+
+    for issue in report.issues:
+        tag = "[red]ERROR[/red]" if issue.severity == "error" else "[yellow]WARN [/yellow]"
+        console.print(f"{tag} [bold]{issue.question_id}[/bold] ({issue.kind}): {issue.message}")
+        if issue.suggestion:
+            console.print(f"      found at [dim]{issue.location}[/dim], verbatim source text:")
+            console.print(f"      [green]{issue.suggestion!r}[/green]")
+
+    console.print(
+        f"\n{report.num_questions} questions, {report.num_scored} scored, "
+        f"{report.num_gold_snippets} gold snippets — "
+        f"[red]{len(report.errors)} error(s)[/red], "
+        f"[yellow]{len(report.warnings)} warning(s)[/yellow]"
+    )
+    if not report.ok:
+        raise typer.Exit(1)
+    console.print("[green]Question set is valid.[/green]")
+
+
+@app.command()
 def strategies() -> None:
     """List available chunking strategies and their default parameters."""
     from rich.table import Table

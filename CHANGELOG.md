@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`chunklab validate --docs ... --questions ...`**: checks a question set against the
+  corpus before an evaluation is spent on it. Flags gold snippets that are missing or
+  only fuzzily present (printing the *verbatim* source text and its offset, ready to
+  paste), duplicate ids, questions without gold, snippets present in several documents,
+  and snippets too short to match meaningfully. Exits non-zero on errors so it can gate
+  CI. Suggestions are suppressed below a plausibility floor and snapped to word
+  boundaries, so a "fix" is never misleading.
+- `docs/getting-started.md`: the real workflow, honestly timed (write questions →
+  validate → run → read), with guidance on question count and hard cases.
 - Metric rigor (schema 1.1, additive): `retrieved_tokens_at_k` and `context_efficiency`
   per strategy expose the context cost that containment-based recall hides; new
   `balanced` ranking metric (`recall - lambda * (tokens/min_tokens - 1)`, documented and
