@@ -160,6 +160,11 @@ def bootstrap(
         raise typer.Exit(1)
 
     out.write_text(dump_questions_yaml(questions), encoding="utf-8")
+    if len(questions) < n:
+        console.print(
+            f"[dim]Asked for {n}: the heuristic rejected the rest rather than emit "
+            f"malformed questions. Add documents to draft more.[/dim]"
+        )
     console.print(
         f"Wrote [bold]{len(questions)}[/bold] draft questions to [bold]{out}[/bold].\n"
         "[yellow]These are drafts.[/yellow] Rewrite each query in your users' words, "

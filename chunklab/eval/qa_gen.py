@@ -75,10 +75,23 @@ _NUMBER_WORD_LIST = sorted(
 )
 _NUMBER_WORDS = "|".join(_NUMBER_WORD_LIST)
 
-_UNITS = (
-    r"percent|per\s+cent|business\s+days?|days?|hours?|minutes?|seconds?|weeks?|months?|"
-    r"years?|euros?|dollars?|gb|mb|tb|kb|iops|bytes?|requests?|times"
+# Unit families are kept apart because each one decides a different wh-word.
+_PERCENT_UNITS = r"percent|per\s+cent"
+_DURATION_UNITS = r"business\s+days?|days?|hours?|minutes?|seconds?|weeks?|months?|years?"
+_RATE_UNITS = r"[kmgt]bps|[kmgt]b/s|iops|rps|qps"
+_SIZE_UNITS = r"[kmgt]ib|[kmgt]b|bytes?"
+_MONEY_UNITS = r"euros?|dollars?"
+_COUNT_UNITS = (
+    r"requests?|calls?|users?|people|employees|documents?|records?|rows?|files?|items?|times"
 )
+
+# Rates before sizes: alternation is leftmost-first, and "Gbps" opens with "Gb".
+_UNITS = "|".join(
+    (_PERCENT_UNITS, _DURATION_UNITS, _RATE_UNITS, _SIZE_UNITS, _MONEY_UNITS, _COUNT_UNITS)
+)
+# A unit must not be the prefix of a longer word: without this, "5 Gbps" matched as
+# "5 Gb" and the question came out as "How many is throughput capped?".
+_UNIT_END = r"(?![A-Za-z])"
 
 # A "focus" is the fact the question will ask for. Contracts spell numbers out and
 # repeat them as numerals — "thirty (30) days" — so the parenthetical is optional.
@@ -86,15 +99,16 @@ _FOCUS_RE = re.compile(
     rf"\b(?:\d[\d,.]*\s*%|\d[\d,.]*x|[$€£]\s?\d[\d,.]*|\d[\d,.]*"
     rf"|(?:{_NUMBER_WORDS})(?:[-\s](?:{_NUMBER_WORDS}))?)"
     rf"(?:\s*\(\d[\d,.]*\))?"
-    rf"(?:\s+(?:{_UNITS}))?",
+    rf"(?:\s+(?:{_UNITS}){_UNIT_END})?",
     re.IGNORECASE,
 )
 
-_DURATION = re.compile(
-    r"\b(days?|hours?|minutes?|seconds?|weeks?|months?|years?|business\s+days?)\b", re.IGNORECASE
-)
-_PERCENT = re.compile(r"%|\bpercent\b|\bper\s+cent\b", re.IGNORECASE)
-_MONEY = re.compile(r"[$€£]|\beuros?\b|\bdollars?\b", re.IGNORECASE)
+_DURATION = re.compile(rf"\b(?:{_DURATION_UNITS}){_UNIT_END}", re.IGNORECASE)
+_PERCENT = re.compile(rf"%|\b(?:{_PERCENT_UNITS}){_UNIT_END}", re.IGNORECASE)
+_MONEY = re.compile(rf"[$€£]|\b(?:{_MONEY_UNITS}){_UNIT_END}", re.IGNORECASE)
+_RATE = re.compile(rf"\b(?:{_RATE_UNITS}){_UNIT_END}", re.IGNORECASE)
+_SIZE = re.compile(rf"\b(?:{_SIZE_UNITS}){_UNIT_END}", re.IGNORECASE)
+_COUNT = re.compile(rf"\b(?:{_COUNT_UNITS}){_UNIT_END}", re.IGNORECASE)
 
 # Function words that read badly at the end of a truncated question.
 _TRAILING_NOISE = {
@@ -147,9 +161,6 @@ _WORD_RE = re.compile(r"[A-Za-z][A-Za-z'-]+")
 UNTYPED = "What"
 
 _YEAR = re.compile(r"\b(19|20)\d{2}\b")
-_COUNT_UNIT = re.compile(
-    r"\b(gb|mb|tb|kb|iops|bytes?|requests?|days?|people|employees|documents?)\b", re.IGNORECASE
-)
 # A number glued to an identifier (RFC 3339, HTTP 200, ISO 27001, NIST 800-88).
 _IDENTIFIER_CONTEXT = re.compile(r"\b[A-Z]{2,}[-\s]?$")
 
@@ -161,9 +172,12 @@ def _wh_word(focus: str) -> str:
         return "How long"
     if _MONEY.search(focus):
         return "How much"
+    # Throughput and data volumes are mass quantities: "how much", never "how many".
+    if _RATE.search(focus) or _SIZE.search(focus):
+        return "How much"
     if _YEAR.fullmatch(focus.strip()):
         return "When"
-    if _COUNT_UNIT.search(focus):
+    if _COUNT.search(focus):
         return "How many"
     return UNTYPED  # bare number: no wh-word fits reliably
 
@@ -177,6 +191,18 @@ def _find_aux(sentence: str) -> tuple[str, int, int] | None:
         if m and (best is None or m.start() < best[1]):
             best = (sentence[m.start() : m.end()], m.start(), m.end())
     return best
+
+
+def _cut_at_parenthetical(words: list[str]) -> list[str]:
+    """Stop the predicate at the first comma: what follows is an aside.
+
+    "capped, in each calendar month, at thirty percent" asks better as
+    "capped" than as the whole run-on.
+    """
+    for i, word in enumerate(words):
+        if word.endswith((",", ";")):
+            return words[: i + 1]
+    return words
 
 
 def _trim_trailing_noise(words: list[str]) -> list[str]:
@@ -220,6 +246,49 @@ _BAD_OPENERS = {
 
 MAX_PREDICATE_WORDS = 10
 
+#: A subordinator between the verb and the focus means the fact belongs to an inner
+#: clause, so the question would attach it to the wrong subject: "What percentage is
+#: class imbalance handled automatically when the minority class falls below?"
+_SUBORDINATORS = {
+    "when",
+    "whenever",
+    "if",
+    "while",
+    "unless",
+    "because",
+    "where",
+    "although",
+    "though",
+    "since",
+    "after",
+    "before",
+    "until",
+    "provided",
+    "whereas",
+    "whether",
+    "that",
+    "which",
+    "who",
+    "whose",
+}
+
+#: A comparative left at the end of a trimmed predicate has lost its complement:
+#: "the greater of five percent and ..." becomes a dangling "the greater".
+_DANGLING_COMPARATIVES = {
+    "greater",
+    "lesser",
+    "larger",
+    "smaller",
+    "higher",
+    "lower",
+    "longer",
+    "shorter",
+    "later",
+    "earlier",
+    "fewer",
+    "sooner",
+}
+
 
 def _focus_candidates(sentence: str):
     """Focus matches that are facts, not parts of identifiers like 'RFC 3339'."""
@@ -253,24 +322,42 @@ def build_query(sentence: str) -> str | None:
         return None
     if len(predicate_words) > MAX_PREDICATE_WORDS:
         return None  # too far from verb to focus: the question would ramble
+    if any(w.lower().strip(",;:") in _SUBORDINATORS for w in predicate_words):
+        return None  # the focus sits in an inner clause, not in the main one
 
-    predicate = " ".join(_trim_trailing_noise(predicate_words)).rstrip(",;:")
+    predicate_words = _cut_at_parenthetical(predicate_words)
+    # _trim_trailing_noise pops in place, so keep a copy to see what it removed.
+    kept = _trim_trailing_noise(list(predicate_words))
+    dropped = tuple(w.lower().strip(",;:") for w in predicate_words[len(kept) :])
+    predicate = " ".join(kept).rstrip(",;:")
     if not predicate or _PARTIAL_TAIL.search(predicate):
         return None  # trailing "per-", "a /", ... would read as a broken question
-
-    subject = re.sub(r"^(?:The|A|An)\s+", "", subject, flags=re.IGNORECASE)
-    if not subject:
-        return None
+    if predicate.split()[-1].lower() in _DANGLING_COMPARATIVES:
+        return None  # "not exceed the greater" lost the complement it compares to
 
     # A question reads better with a lowercase subject; acronyms keep their case.
+    # The article stays: dropping it turned "A report of a production outage" into
+    # the ungrammatical "report of a production outage".
     head = subject.split()[0]
-    if not head.isupper():
+    if not (len(head) > 1 and head.isupper()):  # "A report" is an article, not an acronym
         subject = subject[0].lower() + subject[1:]
 
     wh = _wh_word(focus_match.group(0))
     if wh == UNTYPED:
         return None  # a bare number rarely yields an answerable question
-    query = f"{wh} {aux_text.lower()} {subject} {predicate}?"
+
+    # "capped at 30%" asks as "capped at?", not "capped?". Strand only a single
+    # bare preposition: "payable within?" or "granted up to?" read worse than the
+    # plain form, and "at" only fits an amount.
+    if dropped == ("to",) or (dropped == ("at",) and wh in {"How much", "What percentage"}):
+        predicate += f" {dropped[0]}"
+
+    # A compound auxiliary inverts around the subject: "can custom images be
+    # imported", not "can be custom images imported".
+    modal, _, rest = aux_text.lower().partition(" ")
+    inverted = f"{modal} {subject} {rest}" if rest else f"{modal} {subject}"
+
+    query = f"{wh} {inverted} {predicate}?"
     if len(query.split()) > MAX_QUERY_WORDS:
         return None
     return query

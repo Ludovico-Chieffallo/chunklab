@@ -92,6 +92,77 @@ def test_spelled_number_with_parenthetical_numeral():
     assert q is not None and q.startswith("How long")
 
 
+def test_data_rate_is_an_amount_not_a_count():
+    """Regression: the unit alternation had no right boundary, so "5 Gbps" matched
+    as "5 Gb" and the draft came out as "How many is throughput capped at?"."""
+    q = build_query("Per-flow throughput is capped at 5 Gbps everywhere.")
+    assert q is not None and q.startswith("How much"), q
+
+
+def test_data_volume_is_an_amount_not_a_count():
+    q = build_query("Environment variables are capped at 4 KB total.")
+    assert q is not None and q.startswith("How much"), q
+
+
+def test_countable_unit_stays_how_many():
+    q = build_query("Each project is limited to 50 documents per import.")
+    assert q == "How many is each project limited to?", q
+
+
+def test_compound_auxiliary_inverts_around_the_subject():
+    """"can be imported" must become "can X be imported", not "can be X imported"."""
+    q = build_query("Custom images can be imported up to 500 GB.")
+    assert q is not None
+    assert "can custom images be imported" in q, q
+
+
+def test_keeps_the_article_of_the_subject():
+    q = build_query("A report of a production outage is acknowledged within one (1) hour.")
+    assert q is not None and q.startswith("How long is a report"), q
+
+
+def test_acronym_subject_keeps_its_case():
+    q = build_query("SLA credits are capped at thirty percent of the monthly fee.")
+    assert q is not None and "SLA credits" in q, q
+
+
+def test_rejects_focus_inside_a_subordinate_clause():
+    """The fact belongs to the inner clause, so the question would misattribute it."""
+    assert (
+        build_query(
+            "Class imbalance is handled automatically when the minority class "
+            "falls below ten percent."
+        )
+        is None
+    )
+
+
+def test_rejects_dangling_comparative():
+    assert (
+        build_query(
+            "The revision may not exceed the greater of five percent (5%) and the index change."
+        )
+        is None
+    )
+
+
+def test_predicate_stops_at_a_parenthetical_aside():
+    q = build_query("The credits are capped, in each calendar month, at thirty percent (30%).")
+    assert q is not None
+    assert "calendar month" not in q, q
+
+
+def test_amount_strands_its_preposition():
+    q = build_query("Mileage is reimbursed at 0.38 euros per kilometer.")
+    assert q is not None and q.endswith("reimbursed at?"), q
+
+
+def test_duration_does_not_strand_its_preposition():
+    """"payable within?" reads worse than "payable?" - only "at" strands well."""
+    q = build_query("Each invoice is payable within thirty (30) days of the invoice date.")
+    assert q is not None and q.endswith("payable?"), q
+
+
 def test_rejects_bare_number_without_unit():
     assert build_query("Timestamps are RFC 3339 in UTC.") is None
 

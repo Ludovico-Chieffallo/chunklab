@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   16 words and typed (`How long`/`How much`/`How many`/`What percentage`). Every draft is
   written with `reviewed: false`, and `chunklab run` warns while unreviewed questions are
   still being scored. An optional LLM backend is planned and will stay off by default.
+  The generator prefers emitting fewer questions over emitting malformed ones: it drops
+  sentences whose fact sits inside a subordinate clause (the question would attach it to
+  the wrong subject), predicates left dangling on a comparative, and asides between
+  commas; it inverts compound auxiliaries around the subject (`can custom images be
+  imported`, not `can be custom images imported`) and strands a bare `at`/`to` so the
+  draft reads as English. It says so when it returns fewer than requested.
 - `Question.reviewed` (default `true`, so hand-written sets are unaffected).
 - Metric rigor (schema 1.1, additive): `retrieved_tokens_at_k` and `context_efficiency`
   per strategy expose the context cost that containment-based recall hides; new
