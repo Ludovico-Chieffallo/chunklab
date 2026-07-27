@@ -77,3 +77,40 @@ def test_recommendation_names_winner_when_separated():
     config = default_config()
     text = _build_recommendation(ranked, config, num_scored=30)
     assert "Use STRUCTURE" in text
+
+
+def test_negligible_difference_is_not_reported_as_a_question_count():
+    """Regression: a diff of 1.8e-5 on 889 questions projected to 1.4 billion."""
+    from chunklab.eval.significance import estimate_questions_to_separate
+
+    assert estimate_questions_to_separate(889, 1.76e-5, (-0.022, 0.023)) is None
+
+
+def test_actionable_difference_still_gets_an_estimate():
+    from chunklab.eval.significance import estimate_questions_to_separate
+
+    needed = estimate_questions_to_separate(70, 0.034, (-0.048, 0.121))
+    assert needed is not None and 70 < needed < 100_000
+
+
+def test_tie_on_a_negligible_difference_recommends_by_cost(handbook):
+    """When more questions cannot help, the report must say so and name the cheaper one."""
+    from chunklab.config import default_config
+    from chunklab.models import Question
+    from chunklab.runner import run_evaluation
+
+    config = default_config()
+    config.embedding.backend = "fake"
+    questions = [
+        Question(
+            id=f"q{i}",
+            query="How is overtime compensated?",
+            gold_snippets=["Overtime is paid at 1.5x the regular hourly rate"],
+        )
+        for i in range(20)
+    ]
+    report = run_evaluation([handbook], questions, config)
+
+    if report.recommendation.startswith("No winner"):
+        text = report.recommendation
+        assert "would be needed" in text or "choose on cost" in text

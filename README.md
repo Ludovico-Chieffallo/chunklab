@@ -1,6 +1,6 @@
 # chunklab
 
-> **Find out which chunking strategy actually retrieves your answers best — on your own documents — in 60 seconds.**
+> **Tells you whether the difference between chunking strategies is real — on your own documents — before you commit to one.**
 
 [![CI](https://github.com/Ludovico-Chieffallo/chunklab/actions/workflows/ci.yml/badge.svg)](https://github.com/Ludovico-Chieffallo/chunklab/actions)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
@@ -8,20 +8,27 @@
 
 When a RAG system gives a wrong answer, the failure is often in **retrieval** — the passage that holds the answer never reaches the model — not in the LLM's reasoning over what it was given. And one of the most overlooked variables in retrieval is **chunking**: how you split documents before embedding them. Independent benchmarks that hold the embedding model and retriever fixed and vary *only* the chunking find that it moves retrieval quality on the same corpus (see, e.g., Chroma's [Evaluating Chunking Strategies for Retrieval](https://www.trychroma.com/research/evaluating-chunking)).
 
-On the example corpus bundled with this repo, the choice of strategy moves per-document recall@5 by up to **28 points** (API-reference document: 0.84 best vs 0.56 worst strategy), and **three different strategies win depending on the document** — reproduce both claims with `chunklab run --docs examples/corpus --questions examples/questions.yaml` (enforced in CI by `tests/test_corpus_discriminates.py`).
+The trap is that chunking differences are usually **small and noisy**, and a few dozen questions cannot tell a real 3-point gap from a coin flip. Most comparisons declare a winner anyway. chunklab's job is to stop you from doing that.
 
-There is no universal best strategy: which one wins depends on **your** documents and **your** questions. `chunklab` makes that a one-command, fully-local, evidence-based decision instead of a guess.
+Every number it reports is gated by a paired bootstrap over your questions. If the top two strategies are indistinguishable, it says so, tells you how many more questions would settle it — or that no realistic number would — and points you at the difference that *is* decidable: how much context each one costs you on every query, forever.
+
+**On [public benchmarks](docs/benchmarks.md) this is not a hypothetical.** On QASPER (889 human-written questions, human-annotated evidence) the top two strategies differ by `+0.000` recall. At 70 questions one of them led by `+0.034` — noise that a less careful tool would have shipped as a recommendation. They are still not equivalent, though: one retrieves **35% fewer tokens** for the same recall, and that is the decision worth making.
+
+There is no universal best strategy either: `recursive` ranks **first** on QASPER and **last** on CUAD. Which one wins depends on **your** documents and **your** questions — which is the whole reason to measure instead of guess.
 
 ## What it does
 
-You give it your documents and a handful of questions (each tagged with the "gold" passage that answers it). It runs several chunking strategies, indexes and retrieves for each, and tells you **which strategy actually retrieves your answer-bearing text best — and why**.
+You give it your documents and a handful of questions (each tagged with the "gold" passage that answers it). It runs several chunking strategies, indexes and retrieves for each, and tells you **whether any of them is really better — and if not, which one is cheaper**.
 
 ```
 docs + questions ─▶ [fixed · recursive · semantic · structure] ─▶ ranked report + diagnostics
 ```
 
-- **Runs fully locally.** Default embeddings are a small local model (`BAAI/bge-small-en-v1.5`) — no API key, your documents never leave your machine.
+- **Refuses to guess.** A paired bootstrap over your questions gates every recommendation; a difference that could be noise is reported as a tie, not as a winner.
+- **Prices the tie.** When recall is indistinguishable, `tok@k` is the tiebreaker — the tokens each strategy spends on every query for the rest of the system's life.
+- **Runs fully locally.** Default embeddings are a small local model (`BAAI/bge-small-en-v1.5`) — no API key, no telemetry, your documents never leave your machine.
 - **Explains itself.** Per-strategy diagnostics (token distribution, % tiny fragments, boundary health, table integrity) tell you *why* a strategy won or lost.
+- **Checks your questions first.** `chunklab validate` catches broken gold snippets before a run is spent on them — it found annotation artifacts in a *published* academic benchmark.
 - **Three outputs:** a console table, a standalone HTML report (per-question drill-down + chunk-boundary visualization), and a machine-readable JSON report for CI.
 
 ## Install
@@ -119,6 +126,9 @@ ERROR q1 (not_found): gold snippet not found in the corpus (closest match 81%):
 ```
 
 The full workflow, honestly timed, is in [`docs/getting-started.md`](docs/getting-started.md).
+How the metrics are defined and why `balanced` is the default: [`docs/metrics.md`](docs/metrics.md).
+Results on independent, human-annotated corpora, with every conversion choice and drop rate
+reported: [`docs/benchmarks.md`](docs/benchmarks.md).
 
 ## Configuration
 
