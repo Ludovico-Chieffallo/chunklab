@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   boundaries, so a "fix" is never misleading.
 - `docs/getting-started.md`: the real workflow, honestly timed (write questions →
   validate → run → read), with guidance on question count and hard cases.
+- **`chunklab bootstrap --docs ... -n 20`**: drafts a question set from the corpus with a
+  local heuristic (no API key, no LLM). Gold snippets are verbatim sentences chosen for
+  stating a quantity, duration or amount; queries are template transformations, capped at
+  16 words and typed (`How long`/`How much`/`How many`/`What percentage`). Every draft is
+  written with `reviewed: false`, and `chunklab run` warns while unreviewed questions are
+  still being scored. An optional LLM backend is planned and will stay off by default.
+- `Question.reviewed` (default `true`, so hand-written sets are unaffected).
 - Metric rigor (schema 1.1, additive): `retrieved_tokens_at_k` and `context_efficiency`
   per strategy expose the context cost that containment-based recall hides; new
   `balanced` ranking metric (`recall - lambda * (tokens/min_tokens - 1)`, documented and
@@ -71,6 +78,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tests/data/` as a pure test fixture; `examples/` now ships the discriminating corpus.
 
 ### Fixed
+- Sentence splitting now ends a sentence when markdown emphasis follows the terminal
+  punctuation (`**Is it supported?** Yes, ...`), which previously glued a FAQ heading to
+  the answer that followed it — affecting semantic chunking, boundary health and the
+  question bootstrapper alike.
 - Dense retrieval now uses a stable sort, making result order deterministic when
   chunks tie on score.
 - `StructureChunker` no longer emits tiny heading-only chunks when a parent heading is

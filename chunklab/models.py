@@ -41,6 +41,8 @@ class Question(BaseModel):
     gold_snippets: list[str] = Field(default_factory=list)
     gold_answer: str | None = None
     tags: list[str] = Field(default_factory=list)
+    # False marks a machine-drafted question that no human has checked yet.
+    reviewed: bool = True
 
 
 class RetrievedChunk(BaseModel):
