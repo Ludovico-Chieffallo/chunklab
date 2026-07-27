@@ -204,3 +204,28 @@ def test_runner_warns_about_unreviewed_questions(handbook, drafted):
     ]
     report = run_evaluation([handbook], questions, config)
     assert any("reviewed: false" in w for w in report.warnings)
+
+
+def test_repeated_boilerplate_yields_one_question():
+    """A 10-K repeats "The information required by this Item will be included..."
+    under several headings; the template turned each into the same query."""
+    from chunklab.eval.qa_gen import generate_questions
+    from chunklab.models import Document
+
+    boilerplate = (
+        "The information required by this Item will be included in the proxy "
+        "statement within 120 days after the fiscal year end.\n\n"
+    )
+    filler = "Unrelated narrative text about operations and segments.\n\n" * 12
+    doc = Document(
+        id="filing",
+        source_path="filing.md",
+        text=(boilerplate + filler) * 4,
+        elements=[],
+        metadata={},
+    )
+
+    questions = generate_questions([doc], n=10)
+
+    queries = [q.query for q in questions]
+    assert len(queries) == len(set(queries)), f"duplicate queries generated: {queries}"

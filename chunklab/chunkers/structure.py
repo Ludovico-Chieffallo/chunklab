@@ -21,12 +21,29 @@ class StructureChunker:
             keep_separator=True,
         )
 
+    @staticmethod
+    def _split_depth(headings: list) -> int:
+        """Deepest heading level that still counts as a section boundary.
+
+        H1-H3 is the right cut for a conventional outline, but converters do not
+        produce conventional outlines: pymupdf4llm assigned level 5 to 261 of the
+        268 headings in a real 10-K, so a fixed `<= 3` recognised three headings
+        in a 66k-token filing and silently packed the rest to `max_tokens`.
+
+        When the bulk of the headings sit deeper than H3, the outline is simply
+        shifted, so follow where the headings actually are.
+        """
+        levels = [el.level or 1 for el in headings]
+        most_common = max(set(levels), key=levels.count)
+        return max(3, most_common)
+
     def _section_spans(self, document: Document) -> list[tuple[int, int]]:
         headings = [el for el in document.elements if el.type == "heading" and el.level is not None]
         if not headings:
             return [(0, len(document.text))]
-        # Split at H1-H3 boundaries; deeper headings stay inside their section.
-        starts = [el.char_span[0] for el in headings if (el.level or 1) <= 3]
+        depth = self._split_depth(headings)
+        # Split at the structural levels; deeper headings stay inside their section.
+        starts = [el.char_span[0] for el in headings if (el.level or 1) <= depth]
         if not starts:
             return [(0, len(document.text))]
         if starts[0] != 0:

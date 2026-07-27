@@ -9,3 +9,6 @@ build/
 chunklab_report/
 local_corpus/
 .DS_Store
+
+# Private working notes: rigour backlog, open risks, review findings.
+TO_DO.md

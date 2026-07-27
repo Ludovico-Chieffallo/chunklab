@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`structure` chunking silently degenerated on real documents.** Found by running the
+  loaders over a real 10-K filing and a real annual report; in both cases it kept
+  producing chunks, they were simply packed to `max_tokens` with no regard for the
+  document's sections, and nothing said so.
+  - **DOCX files carrying no heading styles.** The annual report had 961 paragraphs, every
+    one styled `Normal (Web)` — a shape typical of anything converted from HTML — while
+    being visually structured with 171 bold headings. Short, fully-bold paragraphs that do
+    not end in sentence punctuation are now recognised as headings (all-caps reads as one
+    level higher), and the count is recorded in `Document.metadata["inferred_headings"]`.
+    On that document `structure` went from 98 chunks of ~742 tokens to 200 chunks
+    following the real sections.
+  - **Outlines shifted deeper by a converter.** The split depth was hard-coded at H1–H3,
+    but pymupdf4llm assigned level 5 to 261 of the 268 headings in the 10-K, so three
+    headings were recognised in a 66k-token filing. The depth now follows the document's
+    most common heading level (never shallower than H3), which leaves conventional
+    outlines — including the whole example corpus — completely unchanged.
+  - A corpus whose documents have **no detectable headings at all** now warns that
+    `structure`'s score reflects that fallback rather than structure-aware chunking.
+- `chunklab bootstrap` emitted several questions with an identical query when a document
+  repeats boilerplate ("The information required by this Item will be included…" appears
+  under several headings in a 10-K). Identical queries retrieve identical chunks and add
+  no evidence; only the highest-scoring one is kept.
+
 ### Added
 - **Public benchmarks** (`docs/benchmarks.md`, `scripts/benchmarks/`): QASPER and CUAD v1,
   both CC BY 4.0, downloaded on demand rather than vendored. They exist to remove a defect

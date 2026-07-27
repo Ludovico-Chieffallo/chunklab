@@ -202,6 +202,18 @@ def run_evaluation(
             f"{len(empty)} document(s) contain no extractable text and contribute nothing "
             f"({', '.join(empty[:5])}); a scanned PDF needs OCR first."
         )
+    if any(strategy.name == "structure" for strategy in config.strategies):
+        unstructured = [
+            d.id for d in documents if not any(e.type == "heading" for e in d.elements)
+        ]
+        if unstructured:
+            warnings.append(
+                f"{len(unstructured)} document(s) have no detectable headings "
+                f"({', '.join(unstructured[:5])}), so 'structure' chunking falls back to "
+                "packing text up to max_tokens for them - its score there reflects that "
+                "fallback, not structure-aware chunking."
+            )
+
     corpus_languages = _describe_languages(documents)
     mismatched = _english_model_on_foreign_corpus(config.embedding.model, documents)
     if mismatched:

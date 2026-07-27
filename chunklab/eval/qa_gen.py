@@ -439,10 +439,25 @@ def generate_questions(
             taken += 1
 
     candidates.sort(key=lambda c: -c[0])
-    selected = candidates[:n]
-    for i, (_, _, question) in enumerate(selected, 1):
+
+    # Boilerplate repeats: a 10-K says "The information required by this Item will
+    # be included..." under several headings, and the template turns each into the
+    # same question. Two identical queries retrieve the same chunks and add no
+    # evidence, so keep only the highest-scoring one.
+    selected: list[Question] = []
+    seen_queries: set[str] = set()
+    for _score, _doc_id, question in candidates:
+        key = question.query.lower()
+        if key in seen_queries:
+            continue
+        seen_queries.add(key)
+        selected.append(question)
+        if len(selected) >= n:
+            break
+
+    for i, question in enumerate(selected, 1):
         question.id = f"gen{i:02d}"
-    return [q for _, _, q in selected]
+    return selected
 
 
 def dump_questions_yaml(questions: list[Question]) -> str:
