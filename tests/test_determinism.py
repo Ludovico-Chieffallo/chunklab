@@ -36,7 +36,7 @@ def test_provenance_fields(handbook):
 
 def test_schema_version_present(handbook):
     report = _run(handbook)
-    assert report.schema_version == "1.1"
+    assert report.schema_version == "1.2"
 
 
 def test_corpus_hash_is_doc_order_independent(handbook):

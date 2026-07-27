@@ -50,9 +50,30 @@ def token_spans(text: str) -> list[tuple[int, int]]:
     return spans
 
 
+# Sentence terminators that are not ASCII. Scripts that use these generally do not
+# put a space after them, so requiring trailing whitespace collapsed a whole
+# Japanese or Hindi document into a single "sentence".
+_CJK_TERMINATORS = "。｡！？．"  # ideographic and fullwidth forms
+_INDIC_TERMINATORS = "।॥"  # danda, double danda
+_OTHER_TERMINATORS = "؟۔۩։።"  # Arabic, Armenian, Ethiopic
+NON_ASCII_TERMINATORS = _CJK_TERMINATORS + _INDIC_TERMINATORS + _OTHER_TERMINATORS
+
 # Closing quotes/brackets and markdown emphasis (`**bold?**`) may sit between the
-# terminal punctuation and the whitespace that ends the sentence.
-_SENTENCE_END_RE = re.compile(r"(?<=[.!?])[\"')\]*_]*\s+|\n{2,}")
+# terminal punctuation and the whitespace that ends the sentence. ASCII terminators
+# still require whitespace after them, so "3.14" and "e.g." do not split.
+_TRAILING = r"[\"')\]*_»”]*"
+
+# A CJK terminator followed by a closing bracket is quoted speech inside a longer
+# sentence (`彼は「三十日です。」と述べた`), so it is not a boundary. This can leave
+# two sentences joined when a quotation really does end one; joining is the safer
+# error, since splitting there orphans the bracket.
+_CJK_CLOSERS = "」』】）〕》"
+
+_SENTENCE_END_RE = re.compile(
+    rf"(?<=[.!?]){_TRAILING}\s+"
+    rf"|(?<=[{NON_ASCII_TERMINATORS}])(?![{_CJK_CLOSERS}]){_TRAILING}\s*"
+    rf"|\n{{2,}}"
+)
 
 _ABBREVIATIONS = {
     "mr",

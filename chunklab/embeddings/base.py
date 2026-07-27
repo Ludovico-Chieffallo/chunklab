@@ -12,7 +12,15 @@ class Embedder(Protocol):
     revision: str | None  # model revision/commit hash when resolvable, for provenance
 
     def embed(self, texts: list[str]) -> np.ndarray:
-        """Return a unit-normalized (n, d) float32 array."""
+        """Embed passages (chunks, sentences). Unit-normalized (n, d) float32."""
+        ...
+
+    def embed_queries(self, texts: list[str]) -> np.ndarray:
+        """Embed search queries.
+
+        Separate from `embed` because asymmetric models (E5, BGE) prefix the two
+        sides differently; for symmetric models this is the same computation.
+        """
         ...
 
 

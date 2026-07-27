@@ -13,6 +13,13 @@ from chunklab.embeddings.registry import make_embedder
 from chunklab.eval import metrics as m
 from chunklab.eval.gold_match import score_question
 from chunklab.eval.significance import bootstrap_mean_ci
+from chunklab.language import (
+    LATIN_SCRIPT,
+    MULTILINGUAL_SUGGESTION,
+    detect_language,
+    dominant_script,
+    model_language_scope,
+)
 from chunklab.loaders.registry import load_documents
 from chunklab.models import Document, EvalReport, Question, StrategyResult
 from chunklab.retrieval.dense import DenseRetriever
@@ -37,6 +44,33 @@ def _questions_sha256(questions: list[Question]) -> str:
         h.update(q.model_dump_json().encode("utf-8"))
         h.update(b"\x00")
     return h.hexdigest()
+
+
+def _document_language(document: Document) -> str | None:
+    """Best label for a document: its script when non-Latin, else its language."""
+    script = dominant_script(document.text)
+    if script is None:
+        return None
+    if script != LATIN_SCRIPT:
+        return script
+    return detect_language(document.text)
+
+
+def _describe_languages(documents: list[Document]) -> dict[str, str]:
+    """Detected language/script per document, omitting the undecidable ones."""
+    detected = {d.id: _document_language(d) for d in documents}
+    return {doc_id: label for doc_id, label in detected.items() if label}
+
+
+def _english_model_on_foreign_corpus(model: str, documents: list[Document]) -> list[str]:
+    """Documents that an English-only model would handle badly, as 'id (label)'."""
+    if model_language_scope(model) != "english":
+        return []
+    return [
+        f"{doc_id} ({label})"
+        for doc_id, label in _describe_languages(documents).items()
+        if label != "en"
+    ]
 
 
 def _rank_key(result: StrategyResult, ranking_metric: str):
@@ -158,6 +192,16 @@ def run_evaluation(
             f"{len(empty)} document(s) contain no extractable text and contribute nothing "
             f"({', '.join(empty[:5])}); a scanned PDF needs OCR first."
         )
+    corpus_languages = _describe_languages(documents)
+    mismatched = _english_model_on_foreign_corpus(config.embedding.model, documents)
+    if mismatched:
+        warnings.append(
+            f"'{config.embedding.model}' is an English-only embedding model, but "
+            f"{len(mismatched)} document(s) are not English ({', '.join(mismatched[:5])}). "
+            "Retrieval quality will be poor and every score below understates what a "
+            f"suitable model would achieve; try embedding.model: {MULTILINGUAL_SUGGESTION}."
+        )
+
     # A wrong guess produces mojibake, which degrades retrieval without any error.
     guessed = [
         f"{d.id} ({d.metadata['encoding']})"
@@ -195,7 +239,10 @@ def run_evaluation(
 
     report_progress(f"Loading embedding model {config.embedding.model}")
     embedder = make_embedder(
-        config.embedding.backend, config.embedding.model, cache=config.embedding.cache
+        config.embedding.backend,
+        config.embedding.model,
+        cache=config.embedding.cache,
+        prefixes=config.embedding.prefixes,
     )
     doc_map = {d.id: d for d in documents}
     k = config.retrieval.top_k
@@ -283,6 +330,8 @@ def run_evaluation(
             "num_scored_questions": len(scored_questions),
             "embedding_model": config.embedding.model,
             "embedding_model_revision": embedder.revision,
+            "embedding_prefixes": config.embedding.prefixes,
+            "detected_languages": corpus_languages,
             "top_k": k,
             "ranking_metric": config.eval.ranking_metric,
             "seed": config.eval.seed,

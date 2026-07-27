@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Schema 1.2** (additive): `corpus_summary.detected_languages` and
+  `corpus_summary.embedding_prefixes`.
+- **Instruction prefixes are now applied by default.** Queries and passages are embedded
+  through separate entry points (`embed` / `embed_queries`), and each model family gets
+  the scheme it was trained with. This changes results: on the example corpus every
+  strategy's recall moved by 0.000 to +0.047, and the ranking changed. Measured honestly
+  with the tool's own paired bootstrap, the improvement is significant for `recursive`
+  only (+0.047, 95% CI [+0.008, +0.093]); for the other four strategies the point estimate
+  is positive but statistically indistinguishable from zero on 129 questions. It is on by
+  default because it is what the models were trained for and it never measured worse —
+  not because the corpus-wide gain is proven. `embedding.prefixes: false` restores the
+  old behaviour.
+- The slow test asserting that `balanced` *overturns the winner* on the API-reference
+  document no longer held once prefixes were applied, and was re-anchored to what is
+  still true and still meaningful: `balanced` ranks `structure` above `fixed` despite
+  `fixed`'s higher recall, because it retrieves 15% less context. On this corpus no
+  recall gap is now small enough for the penalty to flip first place — which is the
+  documented intent of λ = 0.05, not a regression.
+
+### Added
+- **Multilingual support.**
+  - Sentence segmentation now recognises non-ASCII terminators (`。`, `｡`, `！`, `？`,
+    `।`, `॥`, `؟`, `۔`, Armenian and Ethiopic stops). Scripts that do not put a space
+    after the terminator previously collapsed an entire document into a **single
+    sentence**, making semantic and structure chunking meaningless on Chinese, Japanese
+    and Hindi. A CJK terminator inside a closing bracket is treated as quoted speech.
+  - Query/passage instruction prefixes per model family: E5 (`query: ` / `passage: `,
+    mandatory — omitting them degrades retrieval with no error), BGE English and Chinese
+    (query-side retrieval instruction), none for unrecognised models.
+  - Corpus/model mismatch warning: an English-only model over a non-English corpus is
+    reported explicitly, with `intfloat/multilingual-e5-small` suggested. Detection is
+    dependency-free (Unicode-range script counting plus stop-word frequency for seven
+    Latin-script languages) and conservative — when the evidence is thin it claims
+    nothing, because a wrong warning is worse than no warning.
+- The embedding cache key now covers the query/passage role and the prefix scheme, so
+  turning prefixes off or embedding the same text on the other side can never reuse the
+  wrong vector.
+
 ### Fixed
 - **`token_spans` was quadratic on non-ASCII text.** Mapping byte offsets back to
   character offsets scanned the whole offset map whenever a token boundary fell inside a

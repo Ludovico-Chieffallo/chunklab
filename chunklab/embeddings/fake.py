@@ -31,3 +31,6 @@ class FakeEmbedder:
             for word in _WORD_RE.findall(text.lower()):
                 vectors[i, self._bucket(word)] += 1.0
         return normalize(vectors)
+
+    def embed_queries(self, texts: list[str]) -> np.ndarray:
+        return self.embed(texts)  # symmetric: no instruction prefixes to apply

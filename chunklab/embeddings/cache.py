@@ -90,20 +90,38 @@ class CachedEmbedder:
         self.model_name = inner.model_name
         self.max_seq_tokens = inner.max_seq_tokens
         self.revision = inner.revision
+        self._signature = str(getattr(inner, "cache_signature", ""))
         self.hits = 0
         self.misses = 0
 
-    def _key(self, text: str) -> str:
+    def _key(self, text: str, role: str) -> str:
+        # `role` keeps query and passage vectors apart: an asymmetric model gives
+        # the same text two different embeddings depending on the side it is on.
+        # `signature` covers anything else that changes the vector for identical
+        # input text - today, whether instruction prefixes are applied.
         material = "\x00".join(
-            (str(CACHE_FORMAT), self.model_name, self.revision or "unknown", text)
+            (
+                str(CACHE_FORMAT),
+                self.model_name,
+                self.revision or "unknown",
+                self._signature,
+                role,
+                text,
+            )
         )
         return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
     def embed(self, texts: list[str]) -> np.ndarray:
-        if not texts:
-            return self._inner.embed(texts)
+        return self._embed(texts, "passage", self._inner.embed)
 
-        keys = [self._key(t) for t in texts]
+    def embed_queries(self, texts: list[str]) -> np.ndarray:
+        return self._embed(texts, "query", self._inner.embed_queries)
+
+    def _embed(self, texts: list[str], role: str, compute) -> np.ndarray:
+        if not texts:
+            return compute(texts)
+
+        keys = [self._key(t, role) for t in texts]
         cached = self._cache.get_many(list(dict.fromkeys(keys)))
 
         # Dedupe within the batch too: the same text twice is one model call.
@@ -116,7 +134,7 @@ class CachedEmbedder:
         self.misses += len(pending)
 
         if pending:
-            fresh = self._inner.embed(list(pending.values()))
+            fresh = compute(list(pending.values()))
             computed = dict(zip(pending.keys(), fresh, strict=True))
             self._cache.put_many(computed)
             cached.update(computed)

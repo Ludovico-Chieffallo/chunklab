@@ -10,20 +10,7 @@ import pytest
 
 from chunklab.embeddings.cache import CachedEmbedder, EmbeddingCache
 from chunklab.embeddings.fake import FakeEmbedder
-
-
-class CountingEmbedder(FakeEmbedder):
-    """FakeEmbedder that records what it was actually asked to compute."""
-
-    def __init__(self, revision: str | None = "rev-a") -> None:
-        super().__init__()
-        self.model_name = "counting-embedder"
-        self.revision = revision
-        self.calls: list[list[str]] = []
-
-    def embed(self, texts: list[str]) -> np.ndarray:
-        self.calls.append(list(texts))
-        return super().embed(texts)
+from tests.conftest import CountingEmbedder
 
 
 @pytest.fixture
