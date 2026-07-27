@@ -123,11 +123,51 @@ def demo() -> None:
     build_app().launch()
 
 
-@app.command("gen-questions")
-def gen_questions() -> None:
-    """Generate an eval set from your documents (not yet implemented)."""
+@app.command()
+def bootstrap(
+    docs: Path = typer.Option(..., "--docs", help="Document file or directory."),
+    out: Path = typer.Option(
+        Path("questions.draft.yaml"), "--out", help="Where to write the draft."
+    ),
+    n: int = typer.Option(20, "-n", help="How many questions to draft."),
+    backend: str = typer.Option(
+        "heuristic", "--backend", help="heuristic (default, fully local) | llm (not yet available)"
+    ),
+) -> None:
+    """Draft a question set from your documents, to edit rather than start from scratch.
+
+    Gold snippets are verbatim sentences; the queries are mechanical drafts and
+    every question is marked `reviewed: false` until you have checked it.
+    """
+    from chunklab.eval.qa_gen import dump_questions_yaml, generate_questions
+    from chunklab.loaders.registry import load_documents
+
+    if backend != "heuristic":
+        console.print(
+            f"[red]Unknown backend '{backend}'.[/red] Only the local heuristic backend "
+            "exists today; an optional LLM backend is planned and will stay off by default."
+        )
+        raise typer.Exit(2)
+
+    documents = load_documents(docs)
+    questions = generate_questions(documents, n=n)
+    if not questions:
+        console.print(
+            "[red]No draftable sentences found.[/red] The heuristic looks for factual "
+            "statements with a quantity, duration or amount; write questions by hand for "
+            "this corpus (see docs/getting-started.md)."
+        )
+        raise typer.Exit(1)
+
+    out.write_text(dump_questions_yaml(questions), encoding="utf-8")
+    if len(questions) < n:
+        console.print(
+            f"[dim]Asked for {n}: the heuristic rejected the rest rather than emit "
+            f"malformed questions. Add documents to draft more.[/dim]"
+        )
     console.print(
-        "[yellow]gen-questions is planned for v0.2.[/yellow] "
-        "For now, write 10-20 questions with verbatim gold_snippets - see the README."
+        f"Wrote [bold]{len(questions)}[/bold] draft questions to [bold]{out}[/bold].\n"
+        "[yellow]These are drafts.[/yellow] Rewrite each query in your users' words, "
+        "delete the ones that are not worth asking, then set reviewed: true.\n"
+        f"Check your edits with: chunklab validate --docs {docs} --questions {out}"
     )
-    raise typer.Exit(1)

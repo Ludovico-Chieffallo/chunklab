@@ -95,6 +95,14 @@ Tips:
 - A question with no `gold_snippets` is skipped — add the passage to include it.
 - Aim for 15–30 questions: below 15, differences between strategies are usually noise, and chunklab will say so rather than pick a winner.
 
+### Starting from a blank page
+
+```bash
+chunklab bootstrap --docs ./docs --out questions.draft.yaml -n 20
+```
+
+Drafts a question set locally (no API key): gold snippets are verbatim sentences that state a fact, queries are mechanical drafts marked `reviewed: false`. Rewrite the queries in your users' words before trusting the results — `chunklab run` keeps warning until you do.
+
 ### Check the question set before running
 
 ```bash

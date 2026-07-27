@@ -153,6 +153,13 @@ def run_evaluation(
             "are unlikely to be statistically meaningful; aim for at least 15-20."
         )
 
+    unreviewed = sum(1 for q in scored_questions if not q.reviewed)
+    if unreviewed:
+        warnings.append(
+            f"{unreviewed} scored question(s) are marked 'reviewed: false' (machine-drafted "
+            "and not yet checked); results are only as good as the questions behind them."
+        )
+
     embedder = make_embedder(config.embedding.backend, config.embedding.model)
     doc_map = {d.id: d for d in documents}
     k = config.retrieval.top_k

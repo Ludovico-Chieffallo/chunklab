@@ -21,6 +21,20 @@ averaging hides that. Running chunklab once per document type is often more acti
 
 ## 2. Write 15–30 questions with gold snippets
 
+If a blank page is the obstacle, draft one mechanically first:
+
+```bash
+chunklab bootstrap --docs ./docs --out questions.draft.yaml -n 20
+```
+
+The heuristic backend (local, no API key) picks factual sentences — ones stating a
+duration, an amount, a percentage — uses them verbatim as gold snippets, and turns each
+into a draft question. **The queries are drafts**: rewrite them in your users' words,
+delete the ones not worth asking, then set `reviewed: true`. `chunklab run` warns for as
+long as unreviewed questions remain, because a result is only as good as the questions
+behind it.
+
+
 A question needs a `query` (what a user would ask) and one or more `gold_snippets` — the
 passage in your document that answers it, **copied verbatim**:
 

@@ -48,7 +48,9 @@ def token_spans(text: str) -> list[tuple[int, int]]:
     return spans
 
 
-_SENTENCE_END_RE = re.compile(r"(?<=[.!?])[\"')\]]*\s+|\n{2,}")
+# Closing quotes/brackets and markdown emphasis (`**bold?**`) may sit between the
+# terminal punctuation and the whitespace that ends the sentence.
+_SENTENCE_END_RE = re.compile(r"(?<=[.!?])[\"')\]*_]*\s+|\n{2,}")
 
 _ABBREVIATIONS = {
     "mr",
