@@ -113,18 +113,28 @@ def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scor
             )
             if ci[0] <= 0.0 <= ci[1]:
                 needed = estimate_questions_to_separate(len(a), diff, ci)
-                needed_txt = (
-                    f" Roughly {needed} scored questions would be needed to separate them"
-                    " at the observed difference."
-                    if needed
-                    else ""
-                )
+                if needed:
+                    advice = (
+                        f" Roughly {needed} scored questions would be needed to separate"
+                        " them at the observed difference. Add questions before committing"
+                        " to a strategy."
+                    )
+                else:
+                    # The informative case: they retrieve equally well, so the choice
+                    # should be made on cost, not on more evidence.
+                    cheaper = min(ranked[:2], key=lambda r: r.retrieved_tokens_at_k)
+                    advice = (
+                        " The difference is too small for any realistic number of questions"
+                        f" to separate them, so choose on cost instead: '{cheaper.strategy}'"
+                        f" retrieves {cheaper.retrieved_tokens_at_k:.0f} tokens per question"
+                        " against"
+                        f" {max(r.retrieved_tokens_at_k for r in ranked[:2]):.0f}."
+                    )
                 return (
                     f"No winner: '{ranked[0].strategy}' and '{ranked[1].strategy}' are"
                     f" statistically indistinguishable on {num_scored} scored questions"
                     f" (recall difference {diff:+.3f}, 95% CI [{ci[0]:+.3f}, {ci[1]:+.3f}]"
-                    f" includes zero).{needed_txt}"
-                    " Add questions before committing to a strategy."
+                    f" includes zero).{advice}"
                 )
 
     lines = [

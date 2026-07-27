@@ -7,7 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Public benchmarks** (`docs/benchmarks.md`, `scripts/benchmarks/`): QASPER and CUAD v1,
+  both CC BY 4.0, downloaded on demand rather than vendored. They exist to remove a defect
+  no amount of testing fixes — the example corpus, its questions and its acceptance
+  criteria were written by the same author. In both datasets the questions and gold spans
+  come from people unconnected to this project. Every conversion choice and drop rate is
+  reported, because the benchmark we run is not identical to the benchmark as published.
+  - `chunklab validate` found artifacts in a *published* benchmark: two QASPER annotations
+    whose entire evidence is the section heading "Experimental Setup", a string occurring
+    in 6 of 30 sampled papers.
+  - Headline results: `recursive` ranks **first** on QASPER and **last** on CUAD, the first
+    independent evidence for the no-universal-winner claim. Recall on the bundled example
+    corpus (0.71–0.82) is far above QASPER (0.15–0.40): the example corpus is a formatted
+    demonstration, not an achievable target.
+
+### Fixed
+- **The sample-size estimator printed nonsense on near-ties.** The projection grows with
+  1/diff², so a difference of 1.8e-5 across 889 questions was reported as "roughly
+  1,449,586,924 scored questions would be needed" — true, and useless. Estimates beyond
+  100,000 questions are now reported as "no realistic number would separate them", and the
+  recommendation names the cheaper strategy by context cost instead, which is the decision
+  actually available.
+
 ### Changed
+- **README repositioned around the claim the evidence supports.** chunklab's product is
+  that it tells you *whether the difference between strategies is real* and refuses to
+  name a winner when it is not. The 889-question QASPER run is the justification: at 70
+  questions `recursive` led `structure` by +0.034 and the gate declined to call it; at 889
+  the difference is +0.000. The removed opening claim ("three different strategies win
+  depending on the document") had also become false — the example corpus now has two
+  distinct per-document winners, not three.
 - **Schema 1.2** (additive): `corpus_summary.detected_languages` and
   `corpus_summary.embedding_prefixes`.
 - **Instruction prefixes are now applied by default.** Queries and passages are embedded
