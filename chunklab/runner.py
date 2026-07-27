@@ -1,6 +1,7 @@
 """Orchestrates the full evaluation pipeline (spec §3.3)."""
 
 import hashlib
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -133,9 +134,41 @@ def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scor
 
 
 def run_evaluation(
-    documents: list[Document], questions: list[Question], config: Config
+    documents: list[Document],
+    questions: list[Question],
+    config: Config,
+    on_progress: Callable[[str], None] | None = None,
 ) -> EvalReport:
+    """Evaluate every configured strategy.
+
+    `on_progress` receives a short human-readable status for each step; the
+    embedding pass dominates the runtime, so silence there reads as a hang.
+    """
+    report_progress = on_progress or (lambda _message: None)
     warnings: list[str] = []
+
+    empty = [d.id for d in documents if not d.text.strip()]
+    if empty and len(empty) == len(documents):
+        raise ValueError(
+            "no document contains extractable text "
+            f"({', '.join(empty[:5])}); scanned PDFs need OCR before they can be chunked"
+        )
+    if empty:
+        warnings.append(
+            f"{len(empty)} document(s) contain no extractable text and contribute nothing "
+            f"({', '.join(empty[:5])}); a scanned PDF needs OCR first."
+        )
+    # A wrong guess produces mojibake, which degrades retrieval without any error.
+    guessed = [
+        f"{d.id} ({d.metadata['encoding']})"
+        for d in documents
+        if d.metadata.get("encoding") in {"cp1252", "utf-8/replace"}
+    ]
+    if guessed:
+        warnings.append(
+            f"{len(guessed)} document(s) were not valid UTF-8 and were decoded by fallback "
+            f"({', '.join(guessed[:5])}); re-save them as UTF-8 if accents look wrong."
+        )
 
     scored_questions = [q for q in questions if q.gold_snippets]
     skipped = len(questions) - len(scored_questions)
@@ -160,7 +193,10 @@ def run_evaluation(
             "and not yet checked); results are only as good as the questions behind them."
         )
 
-    embedder = make_embedder(config.embedding.backend, config.embedding.model)
+    report_progress(f"Loading embedding model {config.embedding.model}")
+    embedder = make_embedder(
+        config.embedding.backend, config.embedding.model, cache=config.embedding.cache
+    )
     doc_map = {d.id: d for d in documents}
     k = config.retrieval.top_k
     gold_tokens = {
@@ -169,7 +205,9 @@ def run_evaluation(
 
     results: list[StrategyResult] = []
     chunks_by_strategy: dict[str, list] = {}
-    for strategy in config.strategies:
+    total = len(config.strategies)
+    for index, strategy in enumerate(config.strategies, 1):
+        report_progress(f"[{index}/{total}] chunking with '{strategy.name}'")
         chunker = make_chunker(strategy.name, strategy.params, embedder=embedder)
         chunks = [c for doc in documents for c in chunker.chunk(doc)]
         if not chunks:
@@ -177,7 +215,11 @@ def run_evaluation(
             continue
         chunks_by_strategy[strategy.name] = chunks
 
+        report_progress(f"[{index}/{total}] embedding {len(chunks)} '{strategy.name}' chunks")
         retriever = DenseRetriever(chunks, embedder)
+        report_progress(
+            f"[{index}/{total}] retrieving {len(scored_questions)} queries on '{strategy.name}'"
+        )
         per_question = [
             score_question(
                 q,
@@ -210,6 +252,7 @@ def run_evaluation(
             )
         )
 
+    report_progress(f"bootstrapping confidence intervals ({config.eval.bootstrap_resamples:,}x)")
     # Balanced score needs every strategy's token cost (normalized on the minimum).
     balanced = m.balanced_scores(
         {r.strategy: r.recall_at_k for r in results},
@@ -261,6 +304,7 @@ def evaluate(
     docs: str | Path | list[Document],
     questions: str | Path | list[Question],
     config: Config | str | Path | None = None,
+    on_progress: Callable[[str], None] | None = None,
 ) -> EvalReport:
     """Public API: evaluate chunking strategies over documents and questions.
 
@@ -278,4 +322,4 @@ def evaluate(
         from chunklab.config import load_config
 
         config = load_config(config)
-    return run_evaluation(docs, questions, config)
+    return run_evaluation(docs, questions, config, on_progress=on_progress)

@@ -1,6 +1,7 @@
 """Token counting and sentence splitting with char spans."""
 
 import re
+from bisect import bisect_left, bisect_right
 from functools import lru_cache
 
 
@@ -19,30 +20,31 @@ def token_spans(text: str) -> list[tuple[int, int]]:
     """Char span of every token in `text`, in order.
 
     tiktoken is byte-level, so we accumulate token byte lengths and map byte
-    offsets back to char offsets.
+    offsets back to char offsets. A token boundary can fall inside a multi-byte
+    character, in which case the span extends to the enclosing char boundaries.
+
+    `byte_at[i]` is the byte offset of char `i`, strictly increasing, with a
+    final sentinel — so a boundary lookup is a binary search. Scanning the map
+    instead made the function quadratic, which cost ~19 s on 48k chars of
+    Japanese, where nearly every token boundary splits a character.
     """
     enc = _encoder()
     tokens = enc.encode(text, disallowed_special=())
-    # byte offset -> char offset map
-    byte_to_char: dict[int, int] = {}
-    b = 0
+
+    byte_at = [0] * (len(text) + 1)
+    offset = 0
     for i, ch in enumerate(text):
-        byte_to_char[b] = i
-        b += len(ch.encode("utf-8"))
-    byte_to_char[b] = len(text)
+        byte_at[i] = offset
+        offset += len(ch.encode("utf-8"))
+    byte_at[len(text)] = offset
 
     spans: list[tuple[int, int]] = []
     pos = 0
     for tok in tokens:
         n = len(enc.decode_single_token_bytes(tok))
-        start = byte_to_char.get(pos)
-        end = byte_to_char.get(pos + n)
-        # A token boundary can split a multi-byte char; extend to the nearest
-        # char boundary on either side.
-        if start is None:
-            start = byte_to_char[max(k for k in byte_to_char if k < pos)]
-        if end is None:
-            end = byte_to_char[min(k for k in byte_to_char if k > pos + n)]
+        # last char boundary at or before pos, first at or after pos + n
+        start = bisect_right(byte_at, pos) - 1
+        end = bisect_left(byte_at, pos + n)
         spans.append((start, end))
         pos += n
     return spans
@@ -86,8 +88,11 @@ def sentence_spans(text: str) -> list[tuple[int, int]]:
     boundaries = [0]
     for m in _SENTENCE_END_RE.finditer(text):
         # Skip splits right after a known abbreviation like "Dr." or "e.g."
+        # Whitespace first: `before` always ends with the whitespace that closed the
+        # sentence, so stripping punctuation first was a no-op and left "dr." — which
+        # never matched the list, making every abbreviation split a sentence.
         before = text[: m.start() + 1]
-        last_word = re.split(r"[\s(]", before.rstrip(".!?").rstrip())[-1].lower()
+        last_word = re.split(r"[\s(]", before.rstrip().rstrip(".!?"))[-1].lower()
         if last_word in _ABBREVIATIONS:
             continue
         boundaries.append(m.end())

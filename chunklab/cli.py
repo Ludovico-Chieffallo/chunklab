@@ -32,6 +32,9 @@ def run(
     questions: Path = typer.Option(..., "--questions", help="questions.yaml path."),
     config: Path | None = typer.Option(None, "--config", help="config.yaml path (optional)."),
     out: Path | None = typer.Option(None, "--out", help="Output directory for reports."),
+    no_cache: bool = typer.Option(
+        False, "--no-cache", help="Re-embed everything instead of reusing cached vectors."
+    ),
 ) -> None:
     """Run the chunking evaluation and write the reports."""
     from chunklab.config import load_config
@@ -43,9 +46,17 @@ def run(
     cfg = load_config(config)
     if out is not None:
         cfg.output.dir = str(out)
+    if no_cache:
+        cfg.embedding.cache = False
 
-    with console.status("Running evaluation (first run downloads the embedding model)..."):
-        report = evaluate(docs=docs, questions=questions, config=cfg)
+    starting = "Running evaluation (first run downloads the embedding model)..."
+    with console.status(starting) as status:
+        report = evaluate(
+            docs=docs,
+            questions=questions,
+            config=cfg,
+            on_progress=status.update,
+        )
 
     out_dir = Path(cfg.output.dir)
     out_dir.mkdir(parents=True, exist_ok=True)
