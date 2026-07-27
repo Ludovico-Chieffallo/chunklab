@@ -92,7 +92,25 @@ questions:
 
 Tips:
 - Copy the gold snippet **verbatim** from the source so matching is reliable (small drift is absorbed by fuzzy matching, threshold configurable).
-- A question with no `gold_snippets` is skipped in the MVP — add the passage to include it.
+- A question with no `gold_snippets` is skipped — add the passage to include it.
+- Aim for 15–30 questions: below 15, differences between strategies are usually noise, and chunklab will say so rather than pick a winner.
+
+### Check the question set before running
+
+```bash
+chunklab validate --docs ./docs --questions questions.yaml
+```
+
+`validate` catches the mistakes that silently ruin an evaluation — a snippet that drifted from the source scores zero for every strategy and looks like a chunking problem. For each one it prints the **verbatim source text, ready to paste**, and it exits non-zero so it can gate CI:
+
+```
+ERROR q1 (not_found): gold snippet not found in the corpus (closest match 81%):
+'300 requests per minute on the Starter plan'
+      found at api_reference:2492, verbatim source text:
+      '300 requests per minute on Starter, 1,200 on'
+```
+
+The full workflow, honestly timed, is in [`docs/getting-started.md`](docs/getting-started.md).
 
 ## Configuration
 
