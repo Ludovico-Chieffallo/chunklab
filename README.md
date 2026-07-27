@@ -25,6 +25,7 @@ docs + questions ─▶ [fixed · recursive · semantic · structure] ─▶ ran
 ```
 
 - **Refuses to guess.** A paired bootstrap over your questions gates every recommendation; a difference that could be noise is reported as a tie, not as a winner.
+- **Compares the retriever too.** `--compare-retrievers` evaluates every strategy under dense, BM25 and hybrid (RRF) retrieval. On the bundled corpus that axis moved recall more than the choice of chunker did — which one dominates is a property of *your* corpus, so it is measured rather than assumed.
 - **Prices the tie.** When recall is indistinguishable, `tok@k` is the tiebreaker — the tokens each strategy spends on every query for the rest of the system's life.
 - **Runs fully locally.** Default embeddings are a small local model (`BAAI/bge-small-en-v1.5`) — no API key, no telemetry, your documents never leave your machine.
 - **Explains itself.** Per-strategy diagnostics (token distribution, % tiny fragments, boundary health, table integrity) tell you *why* a strategy won or lost.
@@ -139,8 +140,9 @@ embedding:
   backend: local                 # local (default) | openai (coming soon)
   model: BAAI/bge-small-en-v1.5
 retrieval:
-  mode: dense                    # dense (bm25/hybrid coming soon)
+  mode: dense                    # dense | bm25 | hybrid
   top_k: 5
+  compare: []                    # e.g. [dense, bm25, hybrid] for a strategy x retriever matrix
 eval:
   fuzzy_threshold: 0.90
   ranking_metric: balanced       # balanced (default) | recall_at_k | mrr | hit_rate_at_k

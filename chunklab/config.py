@@ -23,6 +23,20 @@ class EmbeddingConfig(BaseModel):
 class RetrievalConfig(BaseModel):
     mode: Literal["dense", "bm25", "hybrid"] = "dense"
     top_k: int = Field(5, ge=1)
+    # When set, every strategy is evaluated under every listed retriever and the
+    # report becomes a strategy x retriever matrix. Empty means `mode` alone.
+    compare: list[Literal["dense", "bm25", "hybrid"]] = Field(default_factory=list)
+
+    @field_validator("compare")
+    @classmethod
+    def _no_duplicates(cls, v: list[str]) -> list[str]:
+        if len(set(v)) != len(v):
+            raise ValueError(f"retrieval.compare lists a mode twice: {v}")
+        return v
+
+    @property
+    def modes(self) -> list[str]:
+        return list(self.compare) if self.compare else [self.mode]
 
 
 class EvalConfig(BaseModel):

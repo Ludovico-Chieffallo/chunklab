@@ -22,7 +22,7 @@ from chunklab.language import (
 )
 from chunklab.loaders.registry import load_documents
 from chunklab.models import Document, EvalReport, Question, StrategyResult
-from chunklab.retrieval.dense import DenseRetriever
+from chunklab.retrieval.registry import make_retrievers
 from chunklab.text_utils import count_tokens
 
 
@@ -73,6 +73,15 @@ def _english_model_on_foreign_corpus(model: str, documents: list[Document]) -> l
     ]
 
 
+def _result_key(result: StrategyResult) -> str:
+    """Identity of one cell of the strategy x retriever matrix."""
+    return f"{result.strategy}|{result.retriever}"
+
+
+def _label(result: StrategyResult, show_retriever: bool) -> str:
+    return f"{result.strategy} + {result.retriever}" if show_retriever else result.strategy
+
+
 def _rank_key(result: StrategyResult, ranking_metric: str):
     attr = "balanced_score" if ranking_metric == "balanced" else ranking_metric
     primary = getattr(result, attr)
@@ -97,6 +106,8 @@ def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scor
     k = config.retrieval.top_k
     metric_label = metric.replace("_at_k", f"@{k}").replace("_", " ")
     params = ", ".join(f"{key}={val}" for key, val in best.config.items())
+    # With a matrix, naming the strategy alone would hide half the recommendation.
+    matrix = len({r.retriever for r in ranked}) > 1
 
     # Statistical gate: recommend only if the top-2 gap survives a paired bootstrap.
     if len(ranked) > 1:
@@ -125,20 +136,27 @@ def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scor
                     cheaper = min(ranked[:2], key=lambda r: r.retrieved_tokens_at_k)
                     advice = (
                         " The difference is too small for any realistic number of questions"
-                        f" to separate them, so choose on cost instead: '{cheaper.strategy}'"
+                        " to separate them, so choose on cost instead:"
+                        f" '{_label(cheaper, matrix)}'"
                         f" retrieves {cheaper.retrieved_tokens_at_k:.0f} tokens per question"
                         " against"
                         f" {max(r.retrieved_tokens_at_k for r in ranked[:2]):.0f}."
                     )
                 return (
-                    f"No winner: '{ranked[0].strategy}' and '{ranked[1].strategy}' are"
+                    f"No winner: '{_label(ranked[0], matrix)}' and"
+                    f" '{_label(ranked[1], matrix)}' are"
                     f" statistically indistinguishable on {num_scored} scored questions"
                     f" (recall difference {diff:+.3f}, 95% CI [{ci[0]:+.3f}, {ci[1]:+.3f}]"
                     f" includes zero).{advice}"
                 )
 
+    headline = (
+        f"Use {best.strategy.upper()} chunking with {best.retriever.upper()} retrieval"
+        if matrix
+        else f"Use {best.strategy.upper()} chunking"
+    )
     lines = [
-        f"Use {best.strategy.upper()} chunking"
+        headline
         + (f" ({params})." if params else ".")
         + f" It gave the best retrieval on your corpus "
         f"({metric_label} = {getattr(best, metric_attr):.2f})."
@@ -272,6 +290,7 @@ def run_evaluation(
         q.id: [count_tokens(g) for g in q.gold_snippets] for q in scored_questions
     }
 
+    modes = config.retrieval.modes
     results: list[StrategyResult] = []
     chunks_by_strategy: dict[str, list] = {}
     total = len(config.strategies)
@@ -284,20 +303,8 @@ def run_evaluation(
             continue
         chunks_by_strategy[strategy.name] = chunks
 
-        report_progress(f"[{index}/{total}] embedding {len(chunks)} '{strategy.name}' chunks")
-        retriever = DenseRetriever(chunks, embedder)
-        report_progress(
-            f"[{index}/{total}] retrieving {len(scored_questions)} queries on '{strategy.name}'"
-        )
-        per_question = [
-            score_question(
-                q,
-                retriever.retrieve(q.query, k),
-                strategy.name,
-                config.eval.fuzzy_threshold,
-            )
-            for q in scored_questions
-        ]
+        report_progress(f"[{index}/{total}] indexing {len(chunks)} '{strategy.name}' chunks")
+        retrievers = make_retrievers(modes, chunks, embedder)
 
         health = compute_chunk_health(
             chunks,
@@ -306,30 +313,47 @@ def run_evaluation(
             max_tokens=int(strategy.params.get("max_tokens", 10_000)),
             embedder_max_seq=embedder.max_seq_tokens,
         )
-        results.append(
-            StrategyResult(
-                strategy=strategy.name,
-                config=strategy.params,
-                recall_at_k=m.recall_at_k(per_question),
-                hit_rate_at_k=m.hit_rate_at_k(per_question),
-                mrr=m.mrr(per_question),
-                precision_at_k=m.precision_at_k(per_question, k),
-                retrieved_tokens_at_k=m.retrieved_tokens_at_k(per_question),
-                context_efficiency=m.context_efficiency(per_question, gold_tokens),
-                chunk_health=health,
-                per_question=per_question,
+
+        for mode, retriever in retrievers.items():
+            report_progress(
+                f"[{index}/{total}] retrieving {len(scored_questions)} queries:"
+                f" '{strategy.name}' x {mode}"
             )
-        )
+            per_question = [
+                score_question(
+                    q,
+                    retriever.retrieve(q.query, k),
+                    strategy.name,
+                    config.eval.fuzzy_threshold,
+                )
+                for q in scored_questions
+            ]
+            results.append(
+                StrategyResult(
+                    strategy=strategy.name,
+                    retriever=mode,
+                    config=strategy.params,
+                    recall_at_k=m.recall_at_k(per_question),
+                    hit_rate_at_k=m.hit_rate_at_k(per_question),
+                    mrr=m.mrr(per_question),
+                    precision_at_k=m.precision_at_k(per_question, k),
+                    retrieved_tokens_at_k=m.retrieved_tokens_at_k(per_question),
+                    context_efficiency=m.context_efficiency(per_question, gold_tokens),
+                    chunk_health=health,
+                    per_question=per_question,
+                )
+            )
 
     report_progress(f"bootstrapping confidence intervals ({config.eval.bootstrap_resamples:,}x)")
-    # Balanced score needs every strategy's token cost (normalized on the minimum).
+    # Normalized on the cheapest entry in the compared field, so with a matrix the
+    # penalty prices retrievers against each other too, not only strategies.
     balanced = m.balanced_scores(
-        {r.strategy: r.recall_at_k for r in results},
-        {r.strategy: r.retrieved_tokens_at_k for r in results},
+        {_result_key(r): r.recall_at_k for r in results},
+        {_result_key(r): r.retrieved_tokens_at_k for r in results},
         config.eval.balanced_lambda,
     )
     for r in results:
-        r.balanced_score = balanced[r.strategy]
+        r.balanced_score = balanced[_result_key(r)]
         r.ci95 = bootstrap_mean_ci(
             _per_question_recalls(r),
             resamples=config.eval.bootstrap_resamples,
@@ -356,6 +380,7 @@ def run_evaluation(
             "detected_languages": corpus_languages,
             "top_k": k,
             "ranking_metric": config.eval.ranking_metric,
+            "retrieval_modes": modes,
             "seed": config.eval.seed,
             "balanced_lambda": config.eval.balanced_lambda,
             "queries": {q.id: q.query for q in scored_questions},

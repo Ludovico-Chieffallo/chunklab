@@ -18,8 +18,13 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
     )
 
     ranking = cs.get("ranking_metric", "recall_at_k")
+    # Only worth a column when there is something to compare against.
+    show_retriever = len({r.retriever for r in report.strategy_results}) > 1
+
     table = Table(show_edge=False)
     table.add_column("Strategy", style="bold")
+    if show_retriever:
+        table.add_column("retriever")
     if ranking == "balanced":
         table.add_column("balanced", justify="right")
     table.add_column(f"recall@{k}", justify="right")
@@ -35,6 +40,8 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
         h = r.chunk_health
         style = "green" if i == 0 else None
         row = [("▶ " if i == 0 else "  ") + r.strategy]
+        if show_retriever:
+            row.append(r.retriever)
         if ranking == "balanced":
             row.append(f"{r.balanced_score:.2f}")
         row += [

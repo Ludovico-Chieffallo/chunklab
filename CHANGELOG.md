@@ -7,7 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **BM25 and hybrid retrieval, and a strategy × retriever matrix.** `retrieval.mode`
+  already accepted `bm25` and `hybrid` in the config schema while only `dense` existed —
+  a promise the configuration file made and the code did not keep. Both are now real.
+  - **`bm25`**: Okapi BM25 implemented in-tree rather than added as a dependency, because
+    owning it means owning the tokenizer — which is what decides whether the retriever
+    works outside English. Word tokens, falling back to **character bigrams** for scripts
+    written without spaces (Han, Kana, Hangul, Thai), where a word tokenizer emits one
+    token per sentence and matches nothing.
+  - **`hybrid`**: Reciprocal Rank Fusion (`Σ 1/(60 + rank)`, Cormack et al. 2009). Fuses
+    ranks rather than scores, since unbounded idf sums and cosines cannot be summed
+    without per-corpus calibration chunklab has no honest way to perform.
+  - **`--compare-retrievers`** / `retrieval.compare` evaluates every strategy under every
+    retriever. `balanced` then normalizes on the cheapest cell of the whole matrix, so
+    the context penalty prices retrievers against each other too. `hybrid` reuses the
+    dense and BM25 indexes it fuses, so asking for all three costs no more than two.
+  - Measured on the example corpus, switching `dense` → `hybrid` improved recall for
+    **all five** strategies (+0.098 to +0.163, every CI excluding zero) — more than the
+    spread between strategies. On QASPER the same comparison is significant for **two of
+    five**. The example corpus almost certainly overstates the gain: its questions and its
+    documents share an author, so they share vocabulary, which is exactly what lexical
+    matching rewards. Documented in `docs/metrics.md` with both tables.
+- **Schema 1.3** (additive): `strategy_results[].retriever` and
+  `corpus_summary.retrieval_modes`.
+
 ### Fixed
+- **Hybrid fusion was order-dependent on ties.** Two retrievers that swap ranks 1 and 3
+  give both chunks an identical fused score; breaking that tie by insertion order made the
+  ranking depend on the order the retrievers happened to be listed in, so the same corpus
+  could rank differently for no reason. Ties are now broken by best rank achieved and then
+  chunk id, both intrinsic to the chunk. Caught by a test written before the measurement.
 - **`structure` chunking silently degenerated on real documents.** Found by running the
   loaders over a real 10-K filing and a real annual report; in both cases it kept
   producing chunks, they were simply packed to `max_tokens` with no regard for the

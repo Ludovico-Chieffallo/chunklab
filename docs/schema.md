@@ -8,7 +8,7 @@
 of an existing field bumps MAJOR and requires a deprecation entry in the
 [CHANGELOG](../CHANGELOG.md). Consumers should tolerate unknown fields.
 
-Current version: **1.2**.
+Current version: **1.3**.
 
 ## Top level
 
@@ -34,6 +34,7 @@ Current version: **1.2**.
 | `embedding_model_revision` | str \| null | Commit hash of the locally cached Hugging Face snapshot when unambiguously resolvable; `null` otherwise (e.g. fake backend, ambiguous cache). |
 | `top_k` | int | Retrieval cutoff used everywhere. |
 | `ranking_metric` | str | Metric used to rank `strategy_results`. |
+| `retrieval_modes` | array[str] | *(1.3)* Retrievers evaluated (`dense`, `bm25`, `hybrid`). More than one means `strategy_results` is a strategy x retriever matrix. |
 | `seed` | int | *(1.1)* RNG seed used for bootstrap resampling. |
 | `balanced_lambda` | float | *(1.1)* λ of the balanced ranking formula. |
 | `embedding_prefixes` | bool | *(1.2)* Whether the model's trained query/passage instruction prefixes were applied. |
@@ -48,6 +49,7 @@ Current version: **1.2**.
 | Field | Type | Meaning |
 |---|---|---|
 | `strategy` | str | Strategy name (`fixed`, `recursive`, `semantic`, `semantic_no_floor`, `structure`). |
+| `retriever` | str | *(1.3)* Retriever that produced these numbers (`dense`, `bm25`, `hybrid`). Defaults to `dense`; with a matrix, `(strategy, retriever)` is the unique key of an entry. |
 | `config` | object | Parameters the strategy ran with. |
 | `recall_at_k` | float | Mean over questions of gold snippets found in top-k / total gold snippets. |
 | `hit_rate_at_k` | float | Fraction of questions with ≥ 1 gold snippet found in top-k. |
