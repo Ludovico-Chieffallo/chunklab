@@ -4,6 +4,12 @@ on:
   push:
     tags: ["v*"]
 
+# Serialized, never cancelled: aborting a run mid-publish could leave a
+# half-uploaded release on PyPI, which cannot be re-uploaded under the same version.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest

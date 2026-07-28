@@ -16,6 +16,12 @@ on:
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
 
+# Supersede an in-flight run when the same ref is pushed again: stale runs
+# waste minutes and can report after the newer one.
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
