@@ -1,0 +1,1089 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Find out whether the difference between chunking strategies is real.">
+      
+      
+      
+      
+        <link rel="prev" href="../getting-started/">
+      
+      
+        <link rel="next" href="../benchmarks/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Metrics and honesty - chunklab</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#metrics-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="chunklab" class="md-header__button md-logo" aria-label="chunklab" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            chunklab
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Metrics and honesty
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Ludovico-Chieffallo/chunklab" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Ludovico-Chieffallo/chunklab
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="chunklab" class="md-nav__button md-logo" aria-label="chunklab" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    chunklab
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Ludovico-Chieffallo/chunklab" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Ludovico-Chieffallo/chunklab
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics and honesty
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics and honesty
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#retrieval-metrics-per-strategy-cutoff-k-retrievaltop_k" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retrieval metrics (per strategy, cutoff k = retrieval.top_k)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-large-chunk-bias-and-the-balanced-ranking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The large-chunk bias, and the balanced ranking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retrieval-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retrieval mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Retrieval mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reproducing-the-tables-below" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproducing the tables below
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-this-measured-and-a-warning-about-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this measured, and a warning about it
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results-are-specific-to-your-embedding-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results are specific to your embedding model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistical-honesty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistical honesty
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chunk-health-diagnostics-retrieval-independent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chunk-health diagnostics (retrieval-independent)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use in CI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../extending/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add your own strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#retrieval-metrics-per-strategy-cutoff-k-retrievaltop_k" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retrieval metrics (per strategy, cutoff k = retrieval.top_k)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-large-chunk-bias-and-the-balanced-ranking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The large-chunk bias, and the balanced ranking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retrieval-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retrieval mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Retrieval mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reproducing-the-tables-below" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reproducing the tables below
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-this-measured-and-a-warning-about-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this measured, and a warning about it
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results-are-specific-to-your-embedding-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results are specific to your embedding model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistical-honesty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistical honesty
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chunk-health-diagnostics-retrieval-independent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chunk-health diagnostics (retrieval-independent)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="metrics-reference">Metrics reference<a class="headerlink" href="#metrics-reference" title="Permanent link">&para;</a></h1>
+<p>Every number chunklab reports, what it means, and — for the ranking metric — why it is
+built the way it is.</p>
+<h2 id="retrieval-metrics-per-strategy-cutoff-k-retrievaltop_k">Retrieval metrics (per strategy, cutoff <code>k</code> = <code>retrieval.top_k</code>)<a class="headerlink" href="#retrieval-metrics-per-strategy-cutoff-k-retrievaltop_k" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>recall_at_k</code></td>
+<td>Mean over scored questions of (gold snippets found in the top-k retrieved chunks) / (total gold snippets of the question).</td>
+</tr>
+<tr>
+<td><code>hit_rate_at_k</code></td>
+<td>Fraction of questions with at least one gold snippet found in the top-k.</td>
+</tr>
+<tr>
+<td><code>mrr</code></td>
+<td>Mean reciprocal rank of the first hit; 0 when nothing hits within k.</td>
+</tr>
+<tr>
+<td><code>precision_at_k</code></td>
+<td>Mean fraction of the k retrieved chunks that contain a gold snippet.</td>
+</tr>
+<tr>
+<td><code>retrieved_tokens_at_k</code></td>
+<td>Mean total tokens of the k retrieved chunks per question — the context the downstream LLM must pay for and reason over.</td>
+</tr>
+<tr>
+<td><code>context_efficiency</code></td>
+<td>Mean (tokens of <em>found</em> gold snippets) / (tokens retrieved): how much of the retrieved context is actually answer-bearing.</td>
+</tr>
+</tbody>
+</table>
+<p>A "found" gold snippet means the snippet text is contained in a retrieved chunk (exact
+containment after whitespace/case normalization, or fuzzy containment above
+<code>eval.fuzzy_threshold</code>).</p>
+<h2 id="the-large-chunk-bias-and-the-balanced-ranking">The large-chunk bias, and the <code>balanced</code> ranking<a class="headerlink" href="#the-large-chunk-bias-and-the-balanced-ranking" title="Permanent link">&para;</a></h2>
+<p>Containment-based recall has a structural bias: <strong>a bigger chunk always contains at least
+as much gold as a smaller one</strong>. A degenerate strategy that returns each document as a
+single chunk maximizes <code>recall_at_k</code> while being useless in practice — the "answer" it
+retrieves is an entire document the LLM must re-search, at full context price. Ranking
+strategies purely by <code>recall_at_k</code> therefore silently rewards size.
+<code>tests/test_degeneration.py</code> demonstrates the bias and pins the fix.</p>
+<p>The <strong>default</strong> ranking metric, <code>balanced</code>, charges that context cost explicitly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>balanced(s) = recall_at_k(s) − λ · (retrieved_tokens_at_k(s) / T_min − 1)
+</code></pre></div>
+<p>where <code>T_min</code> is the smallest <code>retrieved_tokens_at_k</code> across the compared strategies and
+<code>λ</code> = <code>eval.balanced_lambda</code> (default <strong>0.05</strong>).</p>
+<p>Reading it: the leanest strategy pays no penalty; a strategy retrieving twice the minimum
+pays λ (5 recall points at the default); ten times the minimum pays 9λ (45 points), which
+no recall advantage can plausibly recover. The normalization on <code>T_min</code> makes the penalty
+<em>relative to the field being compared</em>, so <code>balanced</code> never punishes a corpus for having
+long documents — only a strategy for being fatter than its competitors.</p>
+<p>Calibration rationale for λ = 0.05: among the non-degenerate default strategies the token
+ratio <code>T/T_min</code> stays below ~2, so the penalty moves scores by at most ~5 points — enough
+to break recall ties in favor of cheaper context, not enough to override a real recall
+gap. Raising λ to 0.10 makes context cost dominate; lowering it to 0.02 makes <code>balanced</code>
+nearly identical to <code>recall_at_k</code>. Set it per your own downstream token budget.</p>
+<p>What this looks like on the example corpus (129 questions, <code>bge-small-en-v1.5</code>):</p>
+<table>
+<thead>
+<tr>
+<th>strategy</th>
+<th>recall@5</th>
+<th>tok@5</th>
+<th>balanced</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>recursive</code></td>
+<td>0.822</td>
+<td>2228</td>
+<td>0.819</td>
+</tr>
+<tr>
+<td><code>structure</code></td>
+<td>0.810</td>
+<td>2128</td>
+<td><strong>0.810</strong></td>
+</tr>
+<tr>
+<td><code>fixed</code></td>
+<td>0.814</td>
+<td>2447</td>
+<td>0.807</td>
+</tr>
+</tbody>
+</table>
+<p><code>fixed</code> retrieves marginally more than <code>structure</code> (+0.004 recall) while spending 15% more
+context, and <code>balanced</code> ranks <code>structure</code> above it. It does <strong>not</strong> overturn <code>recursive</code>,
+whose recall lead is larger than the penalty — which is the intended behaviour, and is
+pinned by a slow test. On this corpus no recall gap is small enough for the penalty to
+change first place; the metric breaks near-ties, it does not manufacture upsets.</p>
+<h2 id="retrieval-mode">Retrieval mode<a class="headerlink" href="#retrieval-mode" title="Permanent link">&para;</a></h2>
+<p>Chunking is only half of the pipeline. <code>--compare-retrievers</code> (or
+<code>retrieval.compare: [dense, bm25, hybrid]</code>) evaluates every strategy under every
+retriever and reports a <strong>strategy × retriever matrix</strong>, because a strategy ranked under
+one retriever is a statement about that pairing, not about chunking in general.</p>
+<ul>
+<li><strong><code>dense</code></strong> — cosine over the embedding model. Generalises across wording, blurs exact
+  tokens.</li>
+<li><strong><code>bm25</code></strong> — Okapi BM25, implemented in-tree (no dependency). Matches exact terms:
+  identifiers, clause numbers, error codes, product names. Tokenization is word-based,
+  falling back to <strong>character bigrams</strong> for scripts written without spaces (Han, Kana,
+  Hangul, Thai), where a word tokenizer would emit one token per sentence.</li>
+<li><strong><code>hybrid</code></strong> — Reciprocal Rank Fusion, <code>score = Σ 1/(60 + rank)</code>. Fuses <em>ranks</em>, not
+  scores: BM25 scores are unbounded idf sums and cosines live in [-1, 1], so any weighted
+  sum would need per-corpus calibration chunklab cannot do honestly. Ties are broken by
+  best rank achieved and then chunk id, so the result does not depend on the order the
+  retrievers were listed in.</li>
+</ul>
+<p><code>balanced</code> normalizes on the cheapest cell of the whole matrix, so with <code>compare</code> set the
+context penalty prices retrievers against each other too, not just strategies.</p>
+<h3 id="reproducing-the-tables-below">Reproducing the tables below<a class="headerlink" href="#reproducing-the-tables-below" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>chunklab<span class="w"> </span>run<span class="w"> </span>--docs<span class="w"> </span>examples/corpus<span class="w"> </span>--questions<span class="w"> </span>examples/questions.yaml<span class="w"> </span>--compare-retrievers
+</code></pre></div>
+<p>The confidence intervals come from a paired bootstrap between the same strategy under two
+retrievers, over the per-question recalls in <code>report.json</code>. The QASPER figures use the
+corpus prepared by <code>scripts/benchmarks/prepare_qasper.py</code> (see
+<a href="../benchmarks/">public benchmarks</a>).</p>
+<h3 id="what-this-measured-and-a-warning-about-it">What this measured, and a warning about it<a class="headerlink" href="#what-this-measured-and-a-warning-about-it" title="Permanent link">&para;</a></h3>
+<p>On the bundled example corpus, switching from <code>dense</code> to <code>hybrid</code> improved recall@5 for
+<strong>every</strong> strategy, by more than the spread between strategies:</p>
+<table>
+<thead>
+<tr>
+<th>strategy</th>
+<th>dense</th>
+<th>bm25</th>
+<th>hybrid</th>
+<th>hybrid − dense</th>
+<th>95% CI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fixed</code></td>
+<td>0.814</td>
+<td>0.898</td>
+<td>0.953</td>
+<td><strong>+0.140</strong></td>
+<td>[+0.078, +0.209]</td>
+</tr>
+<tr>
+<td><code>semantic_no_floor</code></td>
+<td>0.711</td>
+<td>0.920</td>
+<td>0.873</td>
+<td><strong>+0.163</strong></td>
+<td>[+0.101, +0.225]</td>
+</tr>
+<tr>
+<td><code>structure</code></td>
+<td>0.810</td>
+<td>0.929</td>
+<td>0.926</td>
+<td><strong>+0.116</strong></td>
+<td>[+0.062, +0.178]</td>
+</tr>
+<tr>
+<td><code>semantic</code></td>
+<td>0.734</td>
+<td>0.912</td>
+<td>0.858</td>
+<td><strong>+0.124</strong></td>
+<td>[+0.062, +0.186]</td>
+</tr>
+<tr>
+<td><code>recursive</code></td>
+<td>0.822</td>
+<td>0.873</td>
+<td>0.920</td>
+<td><strong>+0.098</strong></td>
+<td>[+0.039, +0.160]</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Do not generalise that table.</strong> On QASPER, whose questions were written by people who
+had read only the abstract, the same comparison is significant for <strong>two strategies out of
+five</strong>: <code>semantic</code> (+0.131) and <code>semantic_no_floor</code> (+0.107); for <code>fixed</code>, <code>recursive</code> and
+<code>structure</code> the interval includes zero.</p>
+<p>The likely reason is a defect in the example corpus, not a property of BM25: its questions
+and its documents were written by the same author, so the questions reuse the documents'
+vocabulary — precisely what lexical matching rewards. Real users do not have that
+advantage, and QASPER's protocol removes it by construction.</p>
+<p>Which is the point of the matrix: whether the retriever or the chunker dominates is a
+property of <em>your</em> corpus and <em>your</em> questions, and it is measurable rather than
+guessable.</p>
+<h2 id="results-are-specific-to-your-embedding-model">Results are specific to your embedding model<a class="headerlink" href="#results-are-specific-to-your-embedding-model" title="Permanent link">&para;</a></h2>
+<p>Every ranking chunklab produces is a statement about <em>one</em> embedding model. That is not a
+hedge — it is measured. Running the identical corpus and questions under a second model
+changes the answer:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>bge-small-en-v1.5</code></th>
+<th><code>all-MiniLM-L6-v2</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>example corpus, winner</td>
+<td><code>recursive</code> (0.822)</td>
+<td><strong><code>fixed</code></strong> (0.721)</td>
+</tr>
+<tr>
+<td>example corpus, order</td>
+<td>recursive, structure, fixed, semantic, semantic_no_floor</td>
+<td>fixed, recursive, structure, semantic_no_floor, semantic</td>
+</tr>
+<tr>
+<td>QASPER, winner</td>
+<td><code>recursive</code> (0.402)</td>
+<td><code>recursive</code> (0.386)</td>
+</tr>
+<tr>
+<td>QASPER, order</td>
+<td>recursive, structure, semantic, fixed, semantic_no_floor</td>
+<td>recursive, semantic, structure, semantic_no_floor, fixed</td>
+</tr>
+</tbody>
+</table>
+<p>Reproduce by setting <code>embedding.model</code> and re-running the command above.</p>
+<p>The winner changed on one of the two corpora, and the ordering changed on both. So:</p>
+<p><strong>Run chunklab with the embedding model you actually deploy.</strong> Validating with the default
+and shipping something else means acting on a conclusion that was never tested — the kind
+of silent mismatch this tool exists to expose, and one it can commit itself if you let it.</p>
+<p>If you have not chosen a model yet, this is also the honest reading: the model choice
+interacts with the chunking choice, so pick the model first and compare strategies under
+it, rather than treating the two as independent.</p>
+<h2 id="statistical-honesty">Statistical honesty<a class="headerlink" href="#statistical-honesty" title="Permanent link">&para;</a></h2>
+<p>With few questions, small metric differences are noise. chunklab therefore:</p>
+<ul>
+<li>reports <code>ci95</code> per strategy — a percentile bootstrap (default 10,000 resamples, seeded
+  by <code>eval.seed</code>) confidence interval on mean per-question recall;</li>
+<li>gates the recommendation on a <strong>paired bootstrap</strong> over questions between the top two
+  strategies: if the 95% CI of the recall difference includes zero, the report declares
+  the strategies statistically indistinguishable, estimates how many questions would be
+  needed to separate them, and recommends nothing;</li>
+<li>warns when fewer than 15 scored questions are provided.</li>
+</ul>
+<p>The gate is computed on per-question <strong>recall</strong>, not on <code>balanced</code>: the context penalty
+is an aggregate quantity with no per-question decomposition, so it cannot be bootstrapped
+over questions. Read a declared tie as "these strategies retrieve equally well on the
+evidence you supplied" — the ranking still orders them, and among tied strategies
+<code>balanced</code> prefers the one that spends the fewest tokens, which is a defensible
+tie-break even when recall cannot distinguish them.</p>
+<p>Ties are common and are not a failure of the tool. On the bundled example corpus the top
+three strategies are tied, while both <code>semantic</code> variants separate clearly (CI of the
+difference excludes zero) — a tie among the leaders plus a clear rejection of the
+laggards is a useful, honest result.</p>
+<h2 id="chunk-health-diagnostics-retrieval-independent">Chunk-health diagnostics (retrieval-independent)<a class="headerlink" href="#chunk-health-diagnostics-retrieval-independent" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>#chunks</code></td>
+<td>Chunks produced over the corpus.</td>
+</tr>
+<tr>
+<td><code>med_tok</code></td>
+<td>Median chunk size in tokens (cl100k_base).</td>
+</tr>
+<tr>
+<td><code>%tiny</code></td>
+<td>Chunks under <code>eval.min_floor_tokens</code> (default 200) — the fragment trap: pieces too small to give an LLM usable context.</td>
+</tr>
+<tr>
+<td><code>%oversized</code></td>
+<td>Chunks above the strategy's <code>max_tokens</code> or the embedding model's max sequence length — such chunks are silently truncated at embedding time, so their tails are invisible to ranking.</td>
+</tr>
+<tr>
+<td><code>boundary</code></td>
+<td>Chunks that neither start nor end mid-sentence.</td>
+</tr>
+<tr>
+<td><code>tables intact</code></td>
+<td>Fraction of source tables fully contained in one chunk (<code>null</code> without tables).</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/Ludovico-Chieffallo/chunklab" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

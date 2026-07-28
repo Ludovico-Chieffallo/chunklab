@@ -1,0 +1,1083 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Find out whether the difference between chunking strategies is real.">
+      
+      
+      
+      
+        <link rel="prev" href="../extending/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>JSON schema - chunklab</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#the-evalreport-json-contract" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="chunklab" class="md-header__button md-logo" aria-label="chunklab" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            chunklab
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              JSON schema
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Ludovico-Chieffallo/chunklab" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Ludovico-Chieffallo/chunklab
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="chunklab" class="md-nav__button md-logo" aria-label="chunklab" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    chunklab
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Ludovico-Chieffallo/chunklab" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Ludovico-Chieffallo/chunklab
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics and honesty
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Public benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use in CI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../extending/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add your own strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON schema
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top level
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corpus_summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        corpus_summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategy_results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        strategy_results[]
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="strategy_results[]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chunk_health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chunk_health
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per_question" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        per_question[]
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#determinism-guarantee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Determinism guarantee
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#top-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top level
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corpus_summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        corpus_summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strategy_results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        strategy_results[]
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="strategy_results[]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chunk_health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        chunk_health
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per_question" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        per_question[]
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#determinism-guarantee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Determinism guarantee
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="the-evalreport-json-contract">The <code>EvalReport</code> JSON contract<a class="headerlink" href="#the-evalreport-json-contract" title="Permanent link">&para;</a></h1>
+<p><code>chunklab run</code> writes <code>report.json</code> by serializing the <code>EvalReport</code> model verbatim
+(<code>report.model_dump_json()</code>). This document is the field-by-field contract for that JSON.</p>
+<p><strong>Stability policy.</strong> The schema is versioned by the top-level <code>schema_version</code> field
+(<code>"MAJOR.MINOR"</code>). Adding a field bumps MINOR; renaming, removing, or changing the meaning
+of an existing field bumps MAJOR and requires a deprecation entry in the
+<a href="https://github.com/Ludovico-Chieffallo/chunklab/blob/main/CHANGELOG.md">CHANGELOG</a>. Consumers should tolerate unknown fields.</p>
+<p>Current version: <strong>1.3</strong>.</p>
+<h2 id="top-level">Top level<a class="headerlink" href="#top-level" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>schema_version</code></td>
+<td>str</td>
+<td>This contract's version.</td>
+</tr>
+<tr>
+<td><code>corpus_summary</code></td>
+<td>object</td>
+<td>Run provenance and inputs summary (below).</td>
+</tr>
+<tr>
+<td><code>strategy_results</code></td>
+<td>array</td>
+<td>One entry per strategy, <strong>ranked best-first</strong> by <code>corpus_summary.ranking_metric</code> (ties: higher <code>mrr</code>, then higher <code>hit_rate_at_k</code>, then lower <code>chunk_health.pct_tiny</code>).</td>
+</tr>
+<tr>
+<td><code>recommendation</code></td>
+<td>str</td>
+<td>Plain-language recommendation naming the winner and the main diagnostic reasons.</td>
+</tr>
+<tr>
+<td><code>warnings</code></td>
+<td>array[str]</td>
+<td>Non-fatal issues (e.g. questions skipped for missing gold snippets).</td>
+</tr>
+<tr>
+<td><code>generated_at</code></td>
+<td>str</td>
+<td>UTC ISO-8601 timestamp. The only field expected to differ between two identical runs.</td>
+</tr>
+<tr>
+<td><code>viz</code></td>
+<td>object | null</td>
+<td>Chunk-boundary visualization data for one sample document (consumed by the HTML report; same fields as <code>report/viz.py</code> models).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="corpus_summary"><code>corpus_summary</code><a class="headerlink" href="#corpus_summary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>num_documents</code></td>
+<td>int</td>
+<td>Documents loaded.</td>
+</tr>
+<tr>
+<td><code>documents</code></td>
+<td>array[str]</td>
+<td>Document ids (file stems), in evaluation order (sorted by path at load time).</td>
+</tr>
+<tr>
+<td><code>num_questions</code></td>
+<td>int</td>
+<td>Questions provided.</td>
+</tr>
+<tr>
+<td><code>num_scored_questions</code></td>
+<td>int</td>
+<td>Questions with at least one gold snippet (only these are scored).</td>
+</tr>
+<tr>
+<td><code>embedding_model</code></td>
+<td>str</td>
+<td>Embedding model name as configured.</td>
+</tr>
+<tr>
+<td><code>embedding_model_revision</code></td>
+<td>str | null</td>
+<td>Commit hash of the locally cached Hugging Face snapshot when unambiguously resolvable; <code>null</code> otherwise (e.g. fake backend, ambiguous cache).</td>
+</tr>
+<tr>
+<td><code>top_k</code></td>
+<td>int</td>
+<td>Retrieval cutoff used everywhere.</td>
+</tr>
+<tr>
+<td><code>ranking_metric</code></td>
+<td>str</td>
+<td>Metric used to rank <code>strategy_results</code>.</td>
+</tr>
+<tr>
+<td><code>retrieval_modes</code></td>
+<td>array[str]</td>
+<td><em>(1.3)</em> Retrievers evaluated (<code>dense</code>, <code>bm25</code>, <code>hybrid</code>). More than one means <code>strategy_results</code> is a strategy x retriever matrix.</td>
+</tr>
+<tr>
+<td><code>seed</code></td>
+<td>int</td>
+<td><em>(1.1)</em> RNG seed used for bootstrap resampling.</td>
+</tr>
+<tr>
+<td><code>balanced_lambda</code></td>
+<td>float</td>
+<td><em>(1.1)</em> λ of the balanced ranking formula.</td>
+</tr>
+<tr>
+<td><code>embedding_prefixes</code></td>
+<td>bool</td>
+<td><em>(1.2)</em> Whether the model's trained query/passage instruction prefixes were applied.</td>
+</tr>
+<tr>
+<td><code>detected_languages</code></td>
+<td>object</td>
+<td><em>(1.2)</em> Map document id → detected language (ISO code) or non-Latin script name. Documents whose language could not be determined confidently are omitted, so this map may be empty or partial. Advisory only: it drives a warning, never a decision.</td>
+</tr>
+<tr>
+<td><code>queries</code></td>
+<td>object</td>
+<td>Map question id → query text, for scored questions.</td>
+</tr>
+<tr>
+<td><code>chunklab_version</code></td>
+<td>str</td>
+<td>Version of chunklab that produced the report.</td>
+</tr>
+<tr>
+<td><code>corpus_sha256</code></td>
+<td>str</td>
+<td>SHA-256 over <code>(doc_id, text)</code> pairs sorted by <code>doc_id</code>, each element NUL-terminated. Order-independent fingerprint of the parsed corpus.</td>
+</tr>
+<tr>
+<td><code>questions_sha256</code></td>
+<td>str</td>
+<td>SHA-256 over the canonical JSON (<code>model_dump_json</code>) of each <strong>scored</strong> question, sorted by id, NUL-terminated.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="strategy_results"><code>strategy_results[]</code><a class="headerlink" href="#strategy_results" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>strategy</code></td>
+<td>str</td>
+<td>Strategy name (<code>fixed</code>, <code>recursive</code>, <code>semantic</code>, <code>semantic_no_floor</code>, <code>structure</code>).</td>
+</tr>
+<tr>
+<td><code>retriever</code></td>
+<td>str</td>
+<td><em>(1.3)</em> Retriever that produced these numbers (<code>dense</code>, <code>bm25</code>, <code>hybrid</code>). Defaults to <code>dense</code>; with a matrix, <code>(strategy, retriever)</code> is the unique key of an entry.</td>
+</tr>
+<tr>
+<td><code>config</code></td>
+<td>object</td>
+<td>Parameters the strategy ran with.</td>
+</tr>
+<tr>
+<td><code>recall_at_k</code></td>
+<td>float</td>
+<td>Mean over questions of gold snippets found in top-k / total gold snippets.</td>
+</tr>
+<tr>
+<td><code>hit_rate_at_k</code></td>
+<td>float</td>
+<td>Fraction of questions with ≥ 1 gold snippet found in top-k.</td>
+</tr>
+<tr>
+<td><code>mrr</code></td>
+<td>float</td>
+<td>Mean reciprocal rank of the first hit (0 when no hit in top-k).</td>
+</tr>
+<tr>
+<td><code>precision_at_k</code></td>
+<td>float</td>
+<td>Mean fraction of the top-k retrieved chunks that contain a gold snippet.</td>
+</tr>
+<tr>
+<td><code>retrieved_tokens_at_k</code></td>
+<td>float</td>
+<td><em>(1.1)</em> Mean total tokens retrieved per question — downstream context cost.</td>
+</tr>
+<tr>
+<td><code>context_efficiency</code></td>
+<td>float</td>
+<td><em>(1.1)</em> Mean found-gold tokens / retrieved tokens.</td>
+</tr>
+<tr>
+<td><code>balanced_score</code></td>
+<td>float</td>
+<td><em>(1.1)</em> <code>recall_at_k</code> penalized by relative context cost; formula in docs/metrics.md.</td>
+</tr>
+<tr>
+<td><code>ci95</code></td>
+<td>[float, float] | null</td>
+<td><em>(1.1)</em> Bootstrap 95% CI of mean per-question recall.</td>
+</tr>
+<tr>
+<td><code>chunk_health</code></td>
+<td>object</td>
+<td>Retrieval-independent diagnostics (below).</td>
+</tr>
+<tr>
+<td><code>per_question</code></td>
+<td>array</td>
+<td>Per-question outcomes (below).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="chunk_health"><code>chunk_health</code><a class="headerlink" href="#chunk_health" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>num_chunks</code></td>
+<td>int</td>
+<td>Chunks produced over the whole corpus.</td>
+</tr>
+<tr>
+<td><code>tokens_min</code> / <code>tokens_median</code> / <code>tokens_mean</code> / <code>tokens_max</code></td>
+<td>number</td>
+<td>Token-count stats (cl100k_base tokenizer).</td>
+</tr>
+<tr>
+<td><code>pct_tiny</code></td>
+<td>float</td>
+<td>Fraction of chunks under <code>eval.min_floor_tokens</code> (default 200) — the "fragment trap" signal.</td>
+</tr>
+<tr>
+<td><code>pct_oversized</code></td>
+<td>float</td>
+<td>Fraction of chunks above the strategy's <code>max_tokens</code> or the embedding model's max sequence length (truncation risk).</td>
+</tr>
+<tr>
+<td><code>boundary_health</code></td>
+<td>float</td>
+<td>Fraction of chunks that neither start nor end mid-sentence.</td>
+</tr>
+<tr>
+<td><code>table_integrity</code></td>
+<td>float | null</td>
+<td>Fraction of source tables fully contained in a single chunk; <code>null</code> when the corpus has no detected tables.</td>
+</tr>
+<tr>
+<td><code>token_histogram</code></td>
+<td>array[[int, int]]</td>
+<td><code>(bucket_start, count)</code> pairs, bucket width 100 tokens.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="per_question"><code>per_question[]</code><a class="headerlink" href="#per_question" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>question_id</code></td>
+<td>str</td>
+<td>Question id.</td>
+</tr>
+<tr>
+<td><code>strategy</code></td>
+<td>str</td>
+<td>Strategy name (redundant, for flat consumption).</td>
+</tr>
+<tr>
+<td><code>retrieved</code></td>
+<td>array</td>
+<td>Top-k retrieved chunks with <code>score</code>, <code>rank</code>, <code>is_hit</code>, and the full <code>chunk</code> (id, doc_id, text, token_count, char_span, strategy, contains_table, section_path).</td>
+</tr>
+<tr>
+<td><code>hit</code></td>
+<td>bool</td>
+<td>≥ 1 gold snippet found in top-k.</td>
+</tr>
+<tr>
+<td><code>first_hit_rank</code></td>
+<td>int | null</td>
+<td>Rank of the first hit.</td>
+</tr>
+<tr>
+<td><code>split_across_chunks</code></td>
+<td>bool</td>
+<td>No single chunk contained a missing gold snippet, but joining two adjacent retrieved chunks would — the chunker severed the answer.</td>
+</tr>
+<tr>
+<td><code>gold_found_count</code> / <code>gold_total</code></td>
+<td>int</td>
+<td>Gold snippets found / total for this question.</td>
+</tr>
+<tr>
+<td><code>found_gold_indices</code></td>
+<td>array[int]</td>
+<td><em>(1.1)</em> Indices (into the question's <code>gold_snippets</code>) of the snippets found.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="determinism-guarantee">Determinism guarantee<a class="headerlink" href="#determinism-guarantee" title="Permanent link">&para;</a></h2>
+<p>Two runs on identical inputs (same documents, questions, config, embedding backend and
+model revision) produce identical JSON except for <code>generated_at</code>. This is enforced by
+<code>tests/test_determinism.py</code>. Documents are loaded in sorted path order and retrieval uses a
+stable sort, so score ties cannot reorder results between runs.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/Ludovico-Chieffallo/chunklab" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
