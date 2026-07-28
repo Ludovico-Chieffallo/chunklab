@@ -131,17 +131,27 @@ def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scor
                         " to a strategy."
                     )
                 else:
-                    # The informative case: they retrieve equally well, so the choice
-                    # should be made on cost, not on more evidence.
+                    # They retrieve equally well, so the choice should be made on cost
+                    # rather than on more evidence - when there is a cost difference.
                     cheaper = min(ranked[:2], key=lambda r: r.retrieved_tokens_at_k)
+                    dearer = max(r.retrieved_tokens_at_k for r in ranked[:2])
                     advice = (
                         " The difference is too small for any realistic number of questions"
                         " to separate them, so choose on cost instead:"
                         f" '{_label(cheaper, matrix)}'"
                         f" retrieves {cheaper.retrieved_tokens_at_k:.0f} tokens per question"
-                        " against"
-                        f" {max(r.retrieved_tokens_at_k for r in ranked[:2]):.0f}."
+                        f" against {dearer:.0f}."
                     )
+                    if round(cheaper.retrieved_tokens_at_k) >= round(dearer):
+                        # Equal cost too: offering "123 tokens against 123" as a
+                        # tiebreaker reads as a bug, and it is on the small corpora
+                        # people try first, where every strategy scores the same.
+                        advice = (
+                            " They also retrieve the same amount of context, so nothing"
+                            " here distinguishes them: this corpus and question set cannot"
+                            " tell these strategies apart. Add documents, or questions"
+                            " whose answers sit in different places."
+                        )
                 return (
                     f"No winner: '{_label(ranked[0], matrix)}' and"
                     f" '{_label(ranked[1], matrix)}' are"

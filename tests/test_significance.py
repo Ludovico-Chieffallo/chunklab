@@ -129,3 +129,34 @@ def test_tie_on_a_negligible_difference_recommends_by_cost(handbook):
     if report.recommendation.startswith("No winner"):
         text = report.recommendation
         assert "would be needed" in text or "choose on cost" in text
+
+
+def test_equal_cost_tie_does_not_advertise_an_identical_number(handbook):
+    """Found by walking the getting-started guide as a new user: on a small corpus
+    every strategy scored 1.00 and the advice read "choose on cost instead: 'fixed'
+    retrieves 123 tokens per question against 123"."""
+    from chunklab.config import default_config
+    from chunklab.models import Question
+    from chunklab.runner import run_evaluation
+
+    config = default_config()
+    config.embedding.backend = "fake"
+    # One tiny document: every strategy returns the same single chunk, so recall
+    # and token cost are identical across the board.
+    questions = [
+        Question(
+            id=f"q{i}",
+            query="How is overtime compensated?",
+            gold_snippets=["Overtime is paid at 1.5x the regular hourly rate"],
+        )
+        for i in range(3)
+    ]
+    report = run_evaluation([handbook], questions, config)
+
+    text = report.recommendation
+    if "choose on cost" in text:
+        import re
+
+        numbers = re.findall(r"retrieves (\d+) tokens per question against (\d+)", text)
+        for cheaper, dearer in numbers:
+            assert int(cheaper) < int(dearer), f"cost tiebreaker offered {cheaper} vs {dearer}"
