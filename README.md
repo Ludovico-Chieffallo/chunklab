@@ -187,7 +187,7 @@ report = evaluate(
     config=None,  # or a path / a Config object
 )
 print(report.recommendation)
-for r in report.strategy_results:      # ranked best-first
+for r in report.strategy_results:  # ranked best-first
     print(r.strategy, r.recall_at_k, r.mrr)
 ```
 
