@@ -33,3 +33,13 @@ pip install -e ".[dev]"
 
 Include: chunklab version, Python version, OS, the exact command, and — when the issue
 is about scoring — the smallest document + question pair that reproduces it.
+
+## Branch protection
+
+`main` requires a pull request and green CI (`test (3.11)`, `test (3.12)`) before merging,
+with the branch up to date. Force pushes and branch deletion are refused outright.
+
+Administrators can bypass the pull-request rule in an emergency. That escape hatch is
+deliberate and should stay rare: the reason the rule exists is that discipline alone
+already failed once — PR #5 was merged two minutes before its CI finished, and passed by
+luck rather than by check.

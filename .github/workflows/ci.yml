@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# Supersede an in-flight run when the same ref is pushed again: stale runs
+# waste minutes and can report after the newer one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest

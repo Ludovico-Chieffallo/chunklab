@@ -9,6 +9,12 @@ on:
   schedule:
     - cron: "0 6 * * 1"  # weekly, Monday 06:00 UTC
 
+# Supersede an in-flight run when the same ref is pushed again: stale runs
+# waste minutes and can report after the newer one.
+concurrency:
+  group: readme-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
