@@ -61,6 +61,12 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
         "per question (context cost) · %tiny: chunks under the size floor · boundary: chunks "
         "not cut mid-sentence · full definitions: docs/metrics.md[/dim]"
     )
+    # Measured, not hedged: swapping the model changed the winner on one of the two
+    # corpora tested. Ranking a strategy without naming the model is meaningless.
+    console.print(
+        f"[dim]This ranking holds for {cs.get('embedding_model', 'this model')}. "
+        "Strategy order changes with the embedding model — run with the one you deploy.[/dim]"
+    )
 
     console.print(f"\n[bold]Recommendation:[/bold]\n  {report.recommendation}")
     for w in report.warnings:

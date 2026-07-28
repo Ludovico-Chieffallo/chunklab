@@ -110,7 +110,7 @@ def test_countable_unit_stays_how_many():
 
 
 def test_compound_auxiliary_inverts_around_the_subject():
-    """"can be imported" must become "can X be imported", not "can be X imported"."""
+    """ "can be imported" must become "can X be imported", not "can be X imported"."""
     q = build_query("Custom images can be imported up to 500 GB.")
     assert q is not None
     assert "can custom images be imported" in q, q
@@ -158,7 +158,7 @@ def test_amount_strands_its_preposition():
 
 
 def test_duration_does_not_strand_its_preposition():
-    """"payable within?" reads worse than "payable?" - only "at" strands well."""
+    """ "payable within?" reads worse than "payable?" - only "at" strands well."""
     q = build_query("Each invoice is payable within thirty (30) days of the invoice date.")
     assert q is not None and q.endswith("payable?"), q
 

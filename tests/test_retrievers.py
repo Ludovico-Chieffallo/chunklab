@@ -43,7 +43,12 @@ def _chunks(texts: list[str]) -> list[Chunk]:
 
 def test_words_are_lowercased_and_punctuation_dropped():
     assert tokenize("Invoices are PAYABLE, within 30 days.") == [
-        "invoices", "are", "payable", "within", "30", "days",
+        "invoices",
+        "are",
+        "payable",
+        "within",
+        "30",
+        "days",
     ]
 
 

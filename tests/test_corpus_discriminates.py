@@ -20,7 +20,11 @@ CORPUS = EXAMPLES / "corpus"
 QUESTIONS = EXAMPLES / "questions.yaml"
 
 EXPECTED_DOCS = {
-    "faq_support", "contract_msa", "api_reference", "whitepaper", "policy_tables",
+    "faq_support",
+    "contract_msa",
+    "api_reference",
+    "whitepaper",
+    "policy_tables",
 }
 
 
@@ -48,8 +52,15 @@ def test_questions_are_wellformed():
     ids = [q.id for q in questions]
     assert len(ids) == len(set(ids))
     tags = {t for q in questions for t in q.tags}
-    for required in ("needs_context", "table", "short_answer", "multi_snippet", "cross_doc",
-                     "boundary", "two_sentence"):
+    for required in (
+        "needs_context",
+        "table",
+        "short_answer",
+        "multi_snippet",
+        "cross_doc",
+        "boundary",
+        "two_sentence",
+    ):
         assert required in tags, f"tag '{required}' missing from the question set"
 
 
@@ -116,9 +127,7 @@ def test_no_universal_winner(corpus_report):
                 by_src[src].append(qr.gold_found_count / qr.gold_total)
         for src, vals in by_src.items():
             per_doc[src][r.strategy] = sum(vals) / len(vals)
-    winners = {
-        src: max(by_strategy, key=by_strategy.get) for src, by_strategy in per_doc.items()
-    }
+    winners = {src: max(by_strategy, key=by_strategy.get) for src, by_strategy in per_doc.items()}
     assert len(set(winners.values())) >= 2, f"universal winner detected: {winners}"
 
 

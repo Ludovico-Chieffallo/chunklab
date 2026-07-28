@@ -52,8 +52,14 @@ def build() -> docx.Document:
         "reviewed twice a year."
     )
     table(
-        ["Grade", "Daily allowance (EUR)", "Lodging cap band A (EUR)", "Lodging cap band B (EUR)",
-         "Flight class short-haul", "Flight class long-haul"],
+        [
+            "Grade",
+            "Daily allowance (EUR)",
+            "Lodging cap band A (EUR)",
+            "Lodging cap band B (EUR)",
+            "Flight class short-haul",
+            "Flight class long-haul",
+        ],
         [
             ["Intern", 45, 140, 105, "Economy", "Economy"],
             ["Analyst", 55, 160, 120, "Economy", "Economy"],
@@ -104,8 +110,13 @@ def build() -> docx.Document:
         "and disputes are resolved against that log."
     )
     table(
-        ["Roster type", "Standby weekday (EUR/day)", "Standby holiday (EUR/day)",
-         "Intervention rate (EUR/hour)", "Max consecutive days"],
+        [
+            "Roster type",
+            "Standby weekday (EUR/day)",
+            "Standby holiday (EUR/day)",
+            "Intervention rate (EUR/hour)",
+            "Max consecutive days",
+        ],
         [
             ["Platform on-call", 40, 80, 55, 7],
             ["Client production support", 55, 110, 70, 7],
@@ -130,8 +141,13 @@ def build() -> docx.Document:
         "calendar of the contract country."
     )
     table(
-        ["Country", "Annual leave (days)", "Carry-over limit (days)", "Carry-over deadline",
-         "Sick pay top-up"],
+        [
+            "Country",
+            "Annual leave (days)",
+            "Carry-over limit (days)",
+            "Carry-over deadline",
+            "Sick pay top-up",
+        ],
         [
             ["Italy", 26, 10, "30 June", "100% for 180 days"],
             ["Germany", 28, 5, "31 March", "100% for 42 days"],
@@ -163,8 +179,14 @@ def build() -> docx.Document:
         "stocked in the office supply room and require no ticket."
     )
     table(
-        ["Role profile", "Laptop model class", "Refresh cycle (months)", "External monitors",
-         "Mobile allowance (EUR/month)", "Admin rights"],
+        [
+            "Role profile",
+            "Laptop model class",
+            "Refresh cycle (months)",
+            "External monitors",
+            "Mobile allowance (EUR/month)",
+            "Admin rights",
+        ],
         [
             ["Standard office", "13-inch ultrabook", 42, 1, 0, "No"],
             ["Consulting delivery", "14-inch performance", 36, 2, 25, "No"],
@@ -242,15 +264,24 @@ def build() -> docx.Document:
         "between two levels, the higher applies until the data owner rules."
     )
     table(
-        ["Classification", "Examples", "Sharing outside Aurora", "Encryption at rest",
-         "Watermarking"],
+        [
+            "Classification",
+            "Examples",
+            "Sharing outside Aurora",
+            "Encryption at rest",
+            "Watermarking",
+        ],
         [
             ["Public", "Published brochures", "Free", "Optional", "No"],
             ["Internal", "Process documentation", "With NDA", "Required", "No"],
-            ["Confidential", "Client engagement data", "Named recipients only", "Required",
-             "Yes"],
-            ["Strictly confidential", "M&A material, credentials",
-             "Prohibited without GC approval", "Required with CMK", "Yes"],
+            ["Confidential", "Client engagement data", "Named recipients only", "Required", "Yes"],
+            [
+                "Strictly confidential",
+                "M&A material, credentials",
+                "Prohibited without GC approval",
+                "Required with CMK",
+                "Yes",
+            ],
         ],
     )
     p(
@@ -266,8 +297,13 @@ def build() -> docx.Document:
         "employment relationship and covers furniture and peripherals against receipts."
     )
     table(
-        ["Contract type", "Internet allowance (EUR/month)", "Energy allowance (EUR/month)",
-         "One-time setup budget (EUR)", "Office days required per week"],
+        [
+            "Contract type",
+            "Internet allowance (EUR/month)",
+            "Energy allowance (EUR/month)",
+            "One-time setup budget (EUR)",
+            "Office days required per week",
+        ],
         [
             ["Office-based", 0, 0, 0, 4],
             ["Hybrid", 20, 15, 400, 2],
@@ -289,8 +325,13 @@ def build() -> docx.Document:
         "retake per certification is covered at fifty percent."
     )
     table(
-        ["Course or certification", "Category", "Budget cap (EUR)", "Study days granted",
-         "Validity for refresh"],
+        [
+            "Course or certification",
+            "Category",
+            "Budget cap (EUR)",
+            "Study days granted",
+            "Validity for refresh",
+        ],
         [
             ["Cloud architecture professional", "Technical", 1800, 3, "3 years"],
             ["Data engineering associate", "Technical", 1200, 2, "2 years"],
@@ -318,15 +359,29 @@ def build() -> docx.Document:
         "response is trivial."
     )
     table(
-        ["Severity", "Definition", "Response start", "Status update cadence",
-         "Mandatory notification"],
         [
-            ["S1", "Confirmed data breach or client production down", "15 minutes", "Every hour",
-             "CISO, GC, affected client partner"],
-            ["S2", "Internal production down, no data exposure", "1 hour", "Every 4 hours",
-             "CISO"],
-            ["S3", "Degraded service with workaround", "4 business hours", "Daily",
-             "Service owner"],
+            "Severity",
+            "Definition",
+            "Response start",
+            "Status update cadence",
+            "Mandatory notification",
+        ],
+        [
+            [
+                "S1",
+                "Confirmed data breach or client production down",
+                "15 minutes",
+                "Every hour",
+                "CISO, GC, affected client partner",
+            ],
+            ["S2", "Internal production down, no data exposure", "1 hour", "Every 4 hours", "CISO"],
+            [
+                "S3",
+                "Degraded service with workaround",
+                "4 business hours",
+                "Daily",
+                "Service owner",
+            ],
             ["S4", "Cosmetic or single-user issue", "2 business days", "On resolution", "None"],
         ],
     )

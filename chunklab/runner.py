@@ -221,9 +221,7 @@ def run_evaluation(
             f"({', '.join(empty[:5])}); a scanned PDF needs OCR first."
         )
     if any(strategy.name == "structure" for strategy in config.strategies):
-        unstructured = [
-            d.id for d in documents if not any(e.type == "heading" for e in d.elements)
-        ]
+        unstructured = [d.id for d in documents if not any(e.type == "heading" for e in d.elements)]
         if unstructured:
             warnings.append(
                 f"{len(unstructured)} document(s) have no detectable headings "
@@ -286,9 +284,7 @@ def run_evaluation(
     )
     doc_map = {d.id: d for d in documents}
     k = config.retrieval.top_k
-    gold_tokens = {
-        q.id: [count_tokens(g) for g in q.gold_snippets] for q in scored_questions
-    }
+    gold_tokens = {q.id: [count_tokens(g) for g in q.gold_snippets] for q in scored_questions}
 
     modes = config.retrieval.modes
     results: list[StrategyResult] = []

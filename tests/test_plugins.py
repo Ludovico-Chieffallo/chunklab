@@ -162,9 +162,7 @@ def test_plugin_competes_with_the_builtins_in_a_real_run(registered):
 
     config = default_config()
     config.embedding.backend = "fake"
-    config.strategies = [
-        s for s in config.strategies if s.name in {"fixed", "recursive"}
-    ]
+    config.strategies = [s for s in config.strategies if s.name in {"fixed", "recursive"}]
     from chunklab.config import StrategyConfig
 
     config.strategies.append(StrategyConfig(name="paragraph", params={}))

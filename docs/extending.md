@@ -14,6 +14,7 @@ class to inherit.
 from chunklab.chunkers.base import build_chunk
 from chunklab.plugins import register_chunker
 
+
 class ClauseChunker:
     """Splits our contracts on numbered clause markers."""
 
@@ -29,6 +30,7 @@ class ClauseChunker:
                 start = end
         chunks.append(build_chunk(document, "clause", len(chunks), (start, len(document.text))))
         return chunks
+
 
 register_chunker("clause", ClauseChunker, "Splits on numbered clause markers")
 ```
@@ -89,6 +91,7 @@ from langchain_text_splitters import MarkdownHeaderTextSplitter
 from chunklab.chunkers.base import build_chunk
 from chunklab.plugins import register_chunker
 
+
 class LangChainSplitter:
     def __init__(self, **kwargs):
         self._splitter = MarkdownHeaderTextSplitter(**kwargs)
@@ -98,11 +101,12 @@ class LangChainSplitter:
         for piece in self._splitter.split_text(document.text):
             text = piece.page_content
             start = document.text.find(text, cursor)
-            if start < 0:          # the splitter rewrote the text; skip rather than guess
+            if start < 0:  # the splitter rewrote the text; skip rather than guess
                 continue
             cursor = start + len(text)
             chunks.append(build_chunk(document, "langchain", len(chunks), (start, cursor)))
         return chunks
+
 
 register_chunker("langchain", LangChainSplitter, "MarkdownHeaderTextSplitter")
 ```

@@ -63,6 +63,8 @@ ChunkLab — 5 document(s), 129 scored questions, top_k=5, model=BAAI/bge-small-
 recall/MRR/prec: retrieval quality at k=5 · tok@5: mean tokens retrieved per question (context cost)
 · %tiny: chunks under the size floor · boundary: chunks not cut mid-sentence · full definitions: 
 docs/metrics.md
+This ranking holds for BAAI/bge-small-en-v1.5. Strategy order changes with the embedding model — run
+with the one you deploy.
 
 Recommendation:
   No winner: 'recursive' and 'structure' are statistically indistinguishable on 129 scored questions
@@ -74,7 +76,7 @@ strategy.
 
 Note what the recommendation does here: the top two strategies are within noise of each other on 129 questions, so chunklab **refuses to name a winner** and tells you how many questions would settle it. A tool that always produces a confident answer is the problem this one exists to fix.
 
-The run is still decisive where the data supports it: `structure`, `fixed` and `recursive` are statistically tied on this corpus, but both `semantic` variants are *separated* from them (paired-bootstrap 95% CI of the recall difference excludes zero: +0.092 and +0.115). So the actionable output is "don't ship semantic chunking on this corpus, and pick among the top three on context cost" — which is exactly what the `balanced` ranking does, preferring `structure` at 2,075 retrieved tokens over `fixed` at 2,431.
+The run is still decisive where the data supports it. `recursive`, `structure` and `fixed` are statistically tied, but `semantic_no_floor` is *separated* from all three — recall differences +0.111, +0.099 and +0.103, every paired-bootstrap 95% CI excluding zero. The fragment trap it demonstrates is real and measurable, and the floored `semantic` variant recovers most of it. So the actionable output is "don't ship a semantic splitter without a minimum-size floor, then pick among the top three on context cost" — which is what the `balanced` ranking does, preferring `structure` at 2,128 retrieved tokens over `fixed` at 2,447 despite `fixed`'s marginally higher recall.
 
 Open `chunklab_report/report.html` for the full drill-down and the chunk-boundary visualization. The example corpus itself is documented in [`examples/CORPUS.md`](examples/CORPUS.md) — five documents designed so that different strategies win on different documents.
 
@@ -185,7 +187,7 @@ report = evaluate(
     config=None,  # or a path / a Config object
 )
 print(report.recommendation)
-for r in report.strategy_results:      # ranked best-first
+for r in report.strategy_results:  # ranked best-first
     print(r.strategy, r.recall_at_k, r.mrr)
 ```
 
