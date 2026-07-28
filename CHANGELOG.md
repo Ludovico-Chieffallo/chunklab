@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-28
+
+Everything below shipped after 0.2.0. The headline is not a feature: several of these
+entries are silent failures found by running the tool on real documents and on corpora
+this project did not author.
+
 ### Fixed
 - **A stale claim in the README was false.** It said both `semantic` variants were
   statistically separated from the top three strategies (CIs "+0.092 and +0.115"), and
@@ -45,11 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the report. Guide in `docs/extending.md`.
 - **`chunklab cache`** — shows where cached embeddings live, how many vectors and how much
   disk they use; `--clear` removes them. The cache had no way to inspect or bound it.
-- **Documentation site** (`mkdocs.yml`, `docs/index.md`, mkdocs-material). The build runs
-  in `--strict` mode on any PR touching docs, so broken links fail; **deployment is
-  manual-only** (`workflow_dispatch` from `main`), since publishing is the repository
-  owner's decision. `mkdocs<2` is pinned: the Material team warns that MkDocs 2.0 is
-  currently unlicensed and removes the plugin system.
+- **Documentation site**: <https://ludovico-chieffallo.github.io/chunklab/>
+  (`mkdocs.yml`, `docs/index.md`, mkdocs-material). The build runs in `--strict` mode on
+  any PR touching docs, so broken links fail review; deployment happens on push to `main`,
+  never from a pull request, so a fork cannot publish to the live site. `mkdocs<2` is
+  pinned: the Material team warns that MkDocs 2.0 is currently unlicensed and removes the
+  plugin system.
 
 ### Added (earlier in this cycle)
 - **BM25 and hybrid retrieval, and a strategy × retriever matrix.** `retrieval.mode`
