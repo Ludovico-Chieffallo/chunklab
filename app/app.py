@@ -13,6 +13,17 @@ from chunklab.models import Question
 from chunklab.report.html import write_html_report
 from chunklab.runner import evaluate
 
+#: `{k}` is filled in with the retrieval cutoff once the report is available.
+TABLE_HEADERS = [
+    "strategy",
+    "recall@{k}",
+    "hit@{k}",
+    "MRR",
+    "#chunks",
+    "%tiny",
+    "boundary",
+]
+
 EXAMPLE_QUESTIONS = (
     "What is the termination notice period? :: "
     "written notice at least 30 days prior to termination\n"
@@ -62,15 +73,7 @@ def run_eval(file, questions_text: str, strategies: list[str]):
         ]
         for r in report.strategy_results
     ]
-    headers = [
-        "strategy",
-        f"recall@{k}",
-        f"hit@{k}",
-        "MRR",
-        "#chunks",
-        "%tiny",
-        "boundary",
-    ]
+    headers = [h.format(k=k) for h in TABLE_HEADERS]
 
     html_path = Path(tempfile.mkdtemp()) / "report.html"
     write_html_report(report, html_path)
@@ -83,8 +86,8 @@ def build_app():
     with gr.Blocks(title="ChunkLab") as demo:
         gr.Markdown(
             "# ChunkLab\n"
-            "Find out which chunking strategy actually retrieves your answers best — "
-            "on your own document. Everything runs locally in this Space."
+            "Find out whether the difference between chunking strategies is **real** on "
+            "your own document — and be told when it is not. Everything runs locally."
         )
         with gr.Row():
             with gr.Column():
@@ -106,14 +109,14 @@ def build_app():
                 run_btn = gr.Button("Run evaluation", variant="primary")
             with gr.Column():
                 recommendation = gr.Textbox(label="Recommendation", lines=4)
-                table = gr.Dataframe(label="Ranked comparison")
+                table = gr.Dataframe(label="Ranked comparison", headers=TABLE_HEADERS)
                 report_file = gr.File(label="Full HTML report")
 
         def _run(file, questions_text, strategies):
-            rec, (headers, rows), path = run_eval(file, questions_text, strategies)
-            import pandas as pd
-
-            return rec, pd.DataFrame(rows, columns=headers), path
+            # Rows go straight to the Dataframe: building a pandas frame here made
+            # pandas an undeclared dependency that only happened to arrive via gradio.
+            rec, (_headers, rows), path = run_eval(file, questions_text, strategies)
+            return rec, rows, path
 
         run_btn.click(_run, [file, questions, strategies], [recommendation, table, report_file])
     return demo

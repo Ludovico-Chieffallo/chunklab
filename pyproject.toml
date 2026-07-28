@@ -41,7 +41,9 @@ demo = ["gradio>=4.0"]
 # ruff is pinned to a minor range: `ruff format` is a CI gate, and a new release
 # that formats something differently (0.16 began formatting Python blocks inside
 # markdown) turns every unrelated PR red until someone reformats.
-dev = ["pytest>=8.0", "ruff>=0.16,<0.17", "pre-commit>=3.5"]
+# gradio is a dev dependency, not just a demo extra: `chunklab demo` is advertised
+# in the README, so CI has to actually build the interface.
+dev = ["pytest>=8.0", "ruff>=0.16,<0.17", "pre-commit>=3.5", "gradio>=4.0"]
 
 [project.scripts]
 chunklab = "chunklab.cli:app"
