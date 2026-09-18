@@ -3,7 +3,47 @@
 from rich.console import Console
 from rich.table import Table
 
-from chunklab.models import EvalReport
+from chunklab.models import ChunkHealth, EvalReport
+
+#: Diagnostics derived from the chunks alone. Every retriever a strategy is
+#: evaluated under reports the same four numbers, so in a matrix they are the
+#: same value repeated once per cell.
+_CHUNK_HEALTH_COLUMNS = ("#chunks", "med_tok", "%tiny", "boundary")
+
+
+def _chunk_health_cells(health: ChunkHealth) -> list[str]:
+    return [
+        str(health.num_chunks),
+        f"{health.tokens_median:.0f}",
+        f"{health.pct_tiny:.0%}",
+        f"{health.boundary_health:.0%}",
+    ]
+
+
+def _print_chunk_health(report: EvalReport, console: Console) -> None:
+    """Chunk diagnostics, once per strategy rather than once per matrix cell.
+
+    Carrying them inline cost four columns on a table that already had a
+    retriever column, and rich spends what is left truncating the first one: on
+    a real 5 x 3 run at 88 columns every name collapsed to 'sem…', so the output
+    could not distinguish 'semantic' from 'semantic_no_floor' — the two rows the
+    whole fragment-trap argument rests on.
+    """
+    by_strategy: dict[str, ChunkHealth] = {}
+    for result in report.strategy_results:
+        by_strategy.setdefault(result.strategy, result.chunk_health)
+
+    table = Table(show_edge=False)
+    table.add_column("Strategy", style="bold")
+    for name in _CHUNK_HEALTH_COLUMNS:
+        table.add_column(name, justify="right")
+    for strategy, health in by_strategy.items():
+        table.add_row(f"  {strategy}", *_chunk_health_cells(health))
+
+    console.print(
+        "\n[bold]Chunk health[/bold] [dim]— per strategy; identical under every retriever[/dim]"
+    )
+    console.print(table)
 
 
 def print_report(report: EvalReport, console: Console | None = None) -> None:
@@ -31,13 +71,11 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
     table.add_column("MRR", justify="right")
     table.add_column(f"prec@{k}", justify="right")
     table.add_column(f"tok@{k}", justify="right")
-    table.add_column("#chunks", justify="right")
-    table.add_column("med_tok", justify="right")
-    table.add_column("%tiny", justify="right")
-    table.add_column("boundary", justify="right")
+    if not show_retriever:
+        for name in _CHUNK_HEALTH_COLUMNS:
+            table.add_column(name, justify="right")
 
     for i, r in enumerate(report.strategy_results):
-        h = r.chunk_health
         style = "green" if i == 0 else None
         row = [("▶ " if i == 0 else "  ") + r.strategy]
         if show_retriever:
@@ -49,13 +87,15 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
             f"{r.mrr:.2f}",
             f"{r.precision_at_k:.2f}",
             f"{r.retrieved_tokens_at_k:.0f}",
-            str(h.num_chunks),
-            f"{h.tokens_median:.0f}",
-            f"{h.pct_tiny:.0%}",
-            f"{h.boundary_health:.0%}",
         ]
+        if not show_retriever:
+            row += _chunk_health_cells(r.chunk_health)
         table.add_row(*row, style=style)
     console.print(table)
+
+    if show_retriever:
+        _print_chunk_health(report, console)
+
     console.print(
         f"[dim]recall/MRR/prec: retrieval quality at k={k} · tok@{k}: mean tokens retrieved "
         "per question (context cost) · %tiny: chunks under the size floor · boundary: chunks "
