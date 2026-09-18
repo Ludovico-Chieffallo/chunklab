@@ -68,6 +68,9 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
         "Strategy order changes with the embedding model — run with the one you deploy.[/dim]"
     )
 
-    console.print(f"\n[bold]Recommendation:[/bold]\n  {report.recommendation}")
+    # A matrix report carries one block per axis, separated by a blank line; indent
+    # each of them so the second does not hang off the left margin.
+    body = "\n".join(f"  {line}" if line else "" for line in report.recommendation.split("\n"))
+    console.print(f"\n[bold]Recommendation:[/bold]\n{body}")
     for w in report.warnings:
         console.print(f"[yellow]Warning:[/yellow] {w}")
