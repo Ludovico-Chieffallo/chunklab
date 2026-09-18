@@ -1,17 +1,17 @@
 """End-to-end: sample doc + questions -> ranked report + all output formats."""
-
+ 
 from pathlib import Path
-
+ 
 import pytest
-
+ 
 from chunklab.config import default_config
 from chunklab.report.html import write_html_report
 from chunklab.report.json_report import write_json_report
 from chunklab.runner import evaluate
-
+ 
 EXAMPLES = Path(__file__).parent.parent / "examples"
 TEST_DATA = Path(__file__).parent / "data"
-
+ 
 
 @pytest.fixture(scope="module")
 def report():
@@ -22,7 +22,7 @@ def report():
         questions=TEST_DATA / "questions.example.yaml",
         config=config,
     )
-
+ 
 
 def test_report_structure(report):
     assert len(report.strategy_results) == 5
@@ -30,31 +30,33 @@ def test_report_structure(report):
     # q11 has no gold snippets -> warning
     assert any("no gold snippets" in w for w in report.warnings)
     assert report.corpus_summary["num_scored_questions"] == 18
-
+ 
 
 def test_ranked_best_first(report):
     metric = report.corpus_summary["ranking_metric"]
     attr = "balanced_score" if metric == "balanced" else metric
     values = [getattr(r, attr) for r in report.strategy_results]
     assert values == sorted(values, reverse=True)
-
+ 
 
 def test_retrieval_finds_answers(report):
     best = report.strategy_results[0]
     assert best.hit_rate_at_k > 0.5
-
+ 
 
 def test_outputs_written(report, tmp_path):
     html = write_html_report(report, tmp_path / "report.html")
     js = write_json_report(report, tmp_path / "report.json")
-    html_text = html.read_text()
+    # Reports are written as UTF-8; read them back as UTF-8 so the test does not
+    # depend on the platform default encoding (cp1252 on Windows fails here).
+    html_text = html.read_text(encoding="utf-8")
     assert "<title>ChunkLab report</title>" in html_text
     assert "Ranked comparison" in html_text
     import json
-
-    data = json.loads(js.read_text())
+ 
+    data = json.loads(js.read_text(encoding="utf-8"))
     assert data["strategy_results"][0]["strategy"] == report.strategy_results[0].strategy
-
+ 
 
 @pytest.mark.slow
 def test_real_model_floor_beats_no_floor():
