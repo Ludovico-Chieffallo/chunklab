@@ -6,13 +6,21 @@ which looks like a chunking problem and is not. `chunklab validate` finds
 those cases and prints the corrected verbatim text, ready to paste.
 """
 
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field
 from rapidfuzz import fuzz
 
+from chunklab.chunkers.base import section_path_at
 from chunklab.models import Document, Question
 from chunklab.text_utils import count_tokens
+
+#: Headings under which text is a list of works cited rather than prose.
+BIBLIOGRAPHY_HEADING = re.compile(
+    r"^\s*(?:\d+[.)]?\s*)?(references|bibliography|works cited|literature cited|reference list)\b",
+    re.IGNORECASE,
+)
 
 Severity = Literal["error", "warning"]
 
@@ -76,6 +84,28 @@ class _IndexedDoc:
     def __init__(self, document: Document) -> None:
         self.document = document
         self.norm, self.offsets = normalize_with_map(document.text)
+
+    def occurrences(self, norm_gold: str) -> list[int]:
+        """Offsets into the original text of every occurrence of `norm_gold`."""
+        found: list[int] = []
+        at = self.norm.find(norm_gold)
+        while at != -1:
+            found.append(self.offsets[at])
+            at = self.norm.find(norm_gold, at + 1)
+        return found
+
+
+def in_bibliography(document: Document, offset: int) -> bool:
+    """True when `offset` sits anywhere under a reference-list heading.
+
+    The whole heading trail is tested, not just the innermost heading. PDF
+    converters routinely promote a running page header to a heading, and one
+    of those landing inside a reference list would otherwise mask it: on the
+    corpus this check was built from, eight of nine occurrences of a cited
+    paper title resolved to 'References' and the ninth to the journal name
+    printed at the top of the page.
+    """
+    return any(BIBLIOGRAPHY_HEADING.match(heading) for heading in section_path_at(document, offset))
 
 
 #: Below this similarity the closest window is noise, so no fix is proposed.
@@ -213,6 +243,32 @@ def validate_questions(
                             similarity=score,
                         )
                     )
+                continue
+
+            # A snippet that only ever appears in a reference list is a cited
+            # paper title, not evidence. It corrupts scoring in both directions:
+            # one such snippet was "found" by all fifteen cells of a real matrix
+            # because every strategy retrieves some bibliography chunk, and
+            # another by none, because a list of citations is nowhere near the
+            # query. Neither outcome says anything about chunking.
+            placements = [(d, off) for d in containing for off in d.occurrences(norm_gold)]
+            if placements and all(in_bibliography(d.document, off) for d, off in placements):
+                first_doc, first_off = placements[0]
+                report.issues.append(
+                    Issue(
+                        severity="error",
+                        kind="citation_only",
+                        question_id=q.id,
+                        message=(
+                            f"gold snippet occurs only inside reference lists "
+                            f"({len(placements)} time(s) across {len(containing)} document(s)); "
+                            "this is a cited work's title, not a passage that answers the "
+                            "question. Replace it with the sentence in the body that states "
+                            "the finding."
+                        ),
+                        location=f"{first_doc.document.id}:{first_off}",
+                    )
+                )
                 continue
 
             if len(containing) > 1:
