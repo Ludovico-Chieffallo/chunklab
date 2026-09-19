@@ -74,6 +74,30 @@ def _english_model_on_foreign_corpus(model: str, documents: list[Document]) -> l
     ]
 
 
+#: What a decoder or a PDF converter leaves behind when it cannot resolve a
+#: character. Not cosmetic: on a 26-paper corpus these stood in for primes, en
+#: dashes, '≈', a 'Ć' in an author's name and an entire line of Chinese, and one
+#: gold snippet copied from such a passage dropped to a 99% fuzzy match.
+REPLACEMENT_CHAR = "�"
+
+
+def _undecodable(documents: list[Document]) -> list[tuple[str, int, float]]:
+    """(id, count, per-10k rate) per document holding replacement characters.
+
+    Worst rate first, so the names printed in a truncated warning are the ones
+    worth opening.
+    """
+    damaged = [
+        (doc.id, doc.text.count(REPLACEMENT_CHAR), len(doc.text))
+        for doc in documents
+        if REPLACEMENT_CHAR in doc.text
+    ]
+    return sorted(
+        ((doc_id, count, count / max(size, 1) * 10_000) for doc_id, count, size in damaged),
+        key=lambda item: -item[2],
+    )
+
+
 def _result_key(result: StrategyResult) -> str:
     """Identity of one cell of the strategy x retriever matrix."""
     return f"{result.strategy}|{result.retriever}"
@@ -403,6 +427,20 @@ def run_evaluation(
             f"({', '.join(guessed[:5])}); re-save them as UTF-8 if accents look wrong."
         )
 
+    # The check above reads a flag only the text loader sets, so it never saw a
+    # damaged PDF. Counting the replacement characters in the extracted text
+    # catches every loader.
+    damaged = _undecodable(documents)
+    if damaged:
+        total = sum(count for _, count, _ in damaged)
+        worst = ", ".join(f"{doc_id} ({count})" for doc_id, count, _ in damaged[:3])
+        warnings.append(
+            f"{len(damaged)} document(s) hold {total} replacement character(s) (U+FFFD) that "
+            f"the converter could not decode ({worst}); the original characters are lost, so "
+            "gold snippets copied from those passages will not match exactly and retrieval "
+            "sees the damage too."
+        )
+
     scored_questions = [q for q in questions if q.gold_snippets]
     skipped = len(questions) - len(scored_questions)
     if skipped:
@@ -417,6 +455,26 @@ def run_evaluation(
         warnings.append(
             f"only {len(scored_questions)} scored questions: differences between strategies "
             "are unlikely to be statistically meaningful; aim for at least 15-20."
+        )
+
+    # `validate` says this too, but it is opt-in and a run must not quietly
+    # score a question set whose snippets match by accident.
+    from chunklab.validation import MIN_GOLD_TOKENS
+
+    brief = [
+        (q.id, gold)
+        for q in scored_questions
+        for gold in q.gold_snippets
+        if count_tokens(gold) < MIN_GOLD_TOKENS
+    ]
+    if brief:
+        shown = ", ".join(f"{qid} ({gold[:30]!r})" for qid, gold in brief[:3])
+        warnings.append(
+            f"{len(brief)} gold snippet(s) across "
+            f"{len({qid for qid, _ in brief})} question(s) are under {MIN_GOLD_TOKENS} tokens "
+            f"({shown}); short snippets match by accident, and the odds grow with chunk size, "
+            "so they inflate whichever strategy produces the largest chunks. Lengthen them, "
+            "or run 'chunklab validate' to see each one in context."
         )
 
     unreviewed = sum(1 for q in scored_questions if not q.reviewed)
@@ -518,6 +576,10 @@ def run_evaluation(
     return EvalReport(
         corpus_summary={
             "num_documents": len(documents),
+            # A scanned PDF loads, counts, and contributes nothing. Reporting only
+            # the first number put "26 document(s)" at the top of a run whose
+            # index was built from 25.
+            "num_documents_with_text": len(documents) - len(empty),
             "documents": [d.id for d in documents],
             "num_questions": len(questions),
             "num_scored_questions": len(scored_questions),
