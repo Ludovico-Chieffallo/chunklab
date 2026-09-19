@@ -101,7 +101,7 @@ def test_matrix_recommendation_decides_the_chunking_axis():
     chunking = _blocks(text)["Chunking"]
 
     assert "RECURSIVE" in chunking
-    assert "indistinguishable" not in chunking
+    assert "No single winner" not in chunking
     # The verdict has to name what it beat, or "best" is unfalsifiable.
     assert "semantic" in chunking
 
@@ -110,7 +110,7 @@ def test_matrix_recommendation_declares_the_tie_on_the_retrieval_axis():
     text = _build_recommendation(_real_run_matrix(), default_config(), num_scored=N)
     retrieval = _blocks(text)["Retrieval"]
 
-    assert "indistinguishable" in retrieval
+    assert "No single winner" in retrieval
     assert "hybrid" in retrieval and "bm25" in retrieval
     # Advice on the retrieval axis must not tell the reader to pick a chunker.
     assert "committing to a strategy" not in retrieval

@@ -25,6 +25,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A named winner now states its margin and interval.** "It gave the best retrieval on
   your corpus (balanced = 0.65)" is the unfalsifiable claim this tool exists to refuse;
   the sentence now carries the gap over the runner-up and its 95% CI.
+- **The recommendation gate ignored that its winner had been *selected*.** Sorting k
+  candidates and then testing the top two with a paired bootstrap treats a selection as
+  a hypothesis test: the maximum of k noisy estimates is biased upward, so the interval
+  is anti-conservative exactly when it is about to name a winner. Measured on a 15-cell
+  run over 26 research papers, the leading cell was genuinely best in only 68% of
+  resamples while the report spoke as if the top pair were the only candidates.
+
+  The gate is now the leader's probability of actually being best — the share of paired
+  bootstrap resamples it wins (`eval.significance.probability_best`). A winner is named
+  only above `SELECTION_CONFIDENCE` (0.90); calibration over 1,500 simulated comparisons
+  put picks in the 90–100% band right 96% of the time. Because the probabilities sum to
+  one across the field, the multiplicity is priced in by construction and no correction
+  is applied on top.
+
+  Holm over leader-versus-rest and a Hansen model confidence set were both implemented
+  and measured first, and both rejected: Holm erased `recursive − semantic_no_floor` on
+  the example corpus (+0.111, bootstrap p = 0.022, reproduced independently and guarded
+  by `tests/test_claims.py`), and the confidence set retained every candidate on both
+  corpora — less informative than the report it was meant to fix.
+- **An undecided run now reports what it can decide.** "No winner, add 109 questions" is
+  true and useless. The verdict now names the candidates that cannot be ruled out and
+  those that can, so the example corpus narrows five strategies to three and rejects both
+  `semantic` variants outright, and the cost tiebreaker is computed among the survivors
+  rather than between whichever two sorted first.
 - **The `--compare-retrievers` table was unreadable at a normal terminal width.**
   `chunk_health` is derived from the chunks alone, so all four of its columns hold the
   same value for every retriever a strategy runs under — on a 5 x 3 run that is the same
