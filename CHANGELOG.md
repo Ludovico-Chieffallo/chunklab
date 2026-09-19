@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A named winner now states its margin and interval.** "It gave the best retrieval on
   your corpus (balanced = 0.65)" is the unfalsifiable claim this tool exists to refuse;
   the sentence now carries the gap over the runner-up and its 95% CI.
+- **The `--compare-retrievers` table was unreadable at a normal terminal width.**
+  `chunk_health` is derived from the chunks alone, so all four of its columns hold the
+  same value for every retriever a strategy runs under — on a 5 x 3 run that is the same
+  number printed fifteen times, costing four columns of width on a table that already
+  carried a retriever column. At 88 columns rich spent what was left truncating the first
+  column, so every strategy read `sem…` and `semantic` could not be told apart from
+  `semantic_no_floor` — the two rows the fragment-trap argument rests on. A matrix now
+  prints chunk health once per strategy, in its own short table. Single-retriever reports
+  keep the columns inline, where they cost nothing.
 
 ## [0.3.0] - 2026-07-28
 

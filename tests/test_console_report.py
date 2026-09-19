@@ -147,6 +147,58 @@ def test_retriever_column_present_in_a_matrix():
     assert "hybrid" in text and "dense" in text
 
 
+# --- a matrix must stay readable in a real terminal -----------------------------
+
+
+def _full_matrix():
+    """Five strategies x three retrievers, the shape `--compare-retrievers` produces."""
+    strategies = ("recursive", "structure", "fixed", "semantic", "semantic_no_floor")
+    return [
+        _result(strategy, 0.6 - 0.05 * i, retriever=retriever)
+        for i, strategy in enumerate(strategies)
+        for retriever in ("hybrid", "bm25", "dense")
+    ]
+
+
+def test_matrix_table_drops_the_retriever_independent_columns():
+    """chunk_health is computed from the chunks alone, so a matrix repeats the
+    same four numbers on every row of a strategy — three times over."""
+    text = render(_report(_full_matrix(), retrieval_modes=["dense", "bm25", "hybrid"]))
+
+    header = text.splitlines()[3]
+    for column in ("#chunks", "med_tok", "%tiny", "boundary"):
+        assert column not in header, f"{column} is retriever-independent"
+
+
+def test_matrix_reports_chunk_health_once_per_strategy():
+    text = render(_report(_full_matrix(), retrieval_modes=["dense", "bm25", "hybrid"]))
+
+    assert "Chunk health" in text
+    # 42 is the shared num_chunks: five strategies, not fifteen cells.
+    assert text.count("42") == 5
+
+
+def test_matrix_strategy_names_survive_a_real_terminal_width():
+    """The regression: at 88 columns the names truncated to 'sem…', so the two
+    semantic variants could not be told apart in the tool's own output."""
+    text = render(_report(_full_matrix(), retrieval_modes=["dense", "bm25", "hybrid"]), width=88)
+
+    assert "semantic_no_floor" in text
+    table = "\n".join(text.splitlines()[3:24])
+    assert "…" not in table
+
+
+def test_single_retriever_keeps_chunk_health_inline():
+    """Without a matrix the four columns cost nothing, and splitting the table
+    would make the common case worse to read."""
+    text = render(_report([_result("recursive", 0.82), _result("fixed", 0.71)]))
+
+    header = text.splitlines()[3]
+    for column in ("#chunks", "med_tok", "%tiny", "boundary"):
+        assert column in header
+    assert "Chunk health" not in text
+
+
 # --- shapes that must not raise -------------------------------------------------
 
 
