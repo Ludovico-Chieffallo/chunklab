@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`chunklab find-evidence`** — candidate gold passages for questions you have already
+  written. `bootstrap` drafts questions from the documents and `validate` repairs a
+  snippet you already have; the step between them is what actually costs an afternoon,
+  and it was not covered. Measured on a real corpus: of 60 hand-written questions over 26
+  research papers, **40 had no gold snippet** and were dropped from scoring, purely
+  because annotating them by hand was too slow to finish.
+
+  It searches the raw text for each question's distinctive terms — ranked by document
+  frequency, with identifier-shaped terms preferred at equal rarity, since on
+  near-duplicate papers "limitation" finds noise and `OsNramp5` finds the passage — and
+  prints what it finds with document and offset. Reference-list entries and passages
+  holding `U+FFFD` are never offered, because neither can serve as a gold snippet, and a
+  question with no anchor is reported as such rather than answered from whatever turned
+  up.
+
+  **It uses no embeddings, on purpose.** Letting the retriever under evaluation choose
+  the passages it will later be scored against sends that cell to recall 1.0 by
+  construction and makes the comparison between strategies meaningless. It also never
+  picks a snippet: a person reads the candidates and chooses, then runs `validate`.
 - **A gold slot can list several interchangeable passages.** Each entry of
   `gold_snippets` is a slot and recall is the fraction of slots filled; an entry written
   as a nested list is filled by *any* of its variants. Plain strings are unchanged in

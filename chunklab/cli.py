@@ -200,6 +200,60 @@ def cache(
     )
 
 
+@app.command("find-evidence")
+def find_evidence_command(
+    docs: Path = typer.Option(..., "--docs", help="Document file or directory."),
+    questions: Path = typer.Option(..., "--questions", help="questions.yaml path."),
+    candidates: int = typer.Option(5, "--candidates", help="Candidate passages per question."),
+    context: int = typer.Option(
+        1, "--context", help="Neighbouring sentences to show either side of a match."
+    ),
+) -> None:
+    """Find candidate gold passages for questions that have none yet.
+
+    Searches the raw text for the distinctive terms of each question and prints
+    what it finds, for you to read and choose from. It never picks a snippet:
+    copy the passage you want into `gold_snippets`, then run `chunklab validate`.
+
+    No embeddings are used, on purpose. Letting the retriever under evaluation
+    choose the passages it will be scored against sends that cell to recall 1.0
+    by construction and makes the comparison between strategies meaningless.
+    """
+    from chunklab.config import load_questions
+    from chunklab.evidence import find_evidence
+    from chunklab.loaders.registry import load_documents
+
+    documents = load_documents(docs)
+    question_set = load_questions(questions)
+    results = find_evidence(question_set, documents, max_candidates=candidates, context=context)
+
+    if not results:
+        console.print("[green]Every question already has a gold snippet.[/green]")
+        return
+
+    unanchored = 0
+    for evidence in results:
+        console.print(f"\n[bold]{evidence.question_id}[/bold] {evidence.query}")
+        if not evidence.anchored:
+            unanchored += 1
+            missing = ", ".join(evidence.absent[:6]) or "none distinctive enough"
+            console.print(f"  [yellow]no anchor[/yellow] — terms absent from the corpus: {missing}")
+            continue
+        anchors = ", ".join(f"{term} ({n} doc)" for term, n in evidence.anchors)
+        console.print(f"  [dim]anchors: {anchors}[/dim]")
+        for candidate in evidence.candidates:
+            text = " ".join(candidate.text.split())
+            console.print(f"  [dim]{candidate.doc_id}:{candidate.offset}[/dim]")
+            console.print(f"    {text}")
+
+    console.print(
+        f"\n{len(results)} question(s) without gold snippets, "
+        f"{len(results) - unanchored} with a usable anchor. "
+        "Copy the passages you want into gold_snippets verbatim — a nested list "
+        "makes several passages interchangeable — then run 'chunklab validate'."
+    )
+
+
 @app.command()
 def strategies() -> None:
     """List available chunking strategies and their default parameters."""

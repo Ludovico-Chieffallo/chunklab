@@ -50,3 +50,20 @@ def test_module_entry_point_runs():
 
     assert result.returncode == 0, result.stderr
     assert "chunklab" in result.stdout
+
+
+def test_find_evidence_is_listed_in_help():
+    """A command nobody can discover is a command nobody uses."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-m", "chunklab", "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={"COLUMNS": "200", "PATH": "/usr/bin:/bin"},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "find-evidence" in result.stdout

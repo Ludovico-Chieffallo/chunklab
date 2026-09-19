@@ -130,6 +130,18 @@ chunklab bootstrap --docs ./docs --out questions.draft.yaml -n 20
 
 Drafts a question set locally (no API key): gold snippets are verbatim sentences that state a fact, queries are mechanical drafts marked `reviewed: false`. Rewrite the queries in your users' words before trusting the results — `chunklab run` keeps warning until you do.
 
+### You wrote the questions — now find the evidence
+
+```bash
+chunklab find-evidence --docs ./docs --questions questions.yaml
+```
+
+Between drafting questions and validating them sits the step that actually costs an afternoon: locating, in your own documents, the passage that answers each question you wrote. On a real 26-document corpus, two thirds of a hand-written question set never got gold snippets and was silently dropped from scoring, purely because annotating it by hand was too slow.
+
+`find-evidence` searches the raw text for each question's **distinctive** terms and prints what it finds, with the document and offset, for you to read and choose from. It refuses to offer reference-list entries or passages holding undecodable characters, since neither can serve as a gold snippet, and it tells you when a question has no anchor at all — usually a sign the corpus cannot answer it.
+
+It never picks a snippet for you, and it deliberately **uses no embeddings**. Letting the retriever under evaluation choose the passages it will later be scored against sends that pairing to perfect recall by construction and makes the whole comparison meaningless.
+
 ### Check the question set before running
 
 ```bash
