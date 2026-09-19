@@ -1,6 +1,6 @@
 """chunklab — find which chunking strategy retrieves your answers best."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
 def evaluate(*args, **kwargs):
