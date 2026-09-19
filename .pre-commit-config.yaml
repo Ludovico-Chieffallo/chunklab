@@ -1,6 +1,14 @@
+# Run `pre-commit install` once after cloning, or none of this executes: the
+# hooks live in .git/hooks, which is not version-controlled. That is how commit
+# 68b71f5 put trailing whitespace on main and turned the CI format gate red.
+#
+# `rev` must track the ruff range pinned in pyproject.toml ([project.optional-
+# dependencies] dev). A hook on an older ruff formats differently from the one
+# CI runs, so it would wave through exactly the drift it exists to stop --
+# 0.16 changed the formatting of Python blocks inside markdown, for one.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    rev: v0.16.0
     hooks:
       - id: ruff
         args: [--fix]
