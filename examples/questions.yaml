@@ -796,7 +796,7 @@ questions:
 - id: api_invite_expiry
   query: How long does a project invitation remain valid?
   gold_snippets:
-  - expires after fourteen days
+  - the invitation expires after fourteen days
   tags:
   - api
   - short_answer
