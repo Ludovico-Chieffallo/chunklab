@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-19
+
+Everything below came out of one run: 26 CRISPR review papers, 60 hand-written
+questions, `--compare-retrievers`. That single run found more defects than the whole
+test suite, and two of them were in the sentence the tool exists to produce.
+
 ### Added
 - **`chunklab find-evidence`** — candidate gold passages for questions you have already
   written. `bootstrap` drafts questions from the documents and `validate` repairs a
