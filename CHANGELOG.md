@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`chunklab validate` refuses a gold snippet that only lives in a reference list.**
+  On a run over 26 CRISPR review papers, two of the twenty scored questions had a cited
+  paper's *title* as their gold snippet, present in seven to nine bibliographies and in
+  no body text. They corrupted the measurement in opposite directions: one was found by
+  every cell of the 15-cell matrix, because any strategy retrieves some bibliography
+  chunk, and the other by none, because a list of citations sits nowhere near the query.
+  `validate` had called both merely `ambiguous` ("appears in 9 documents"), which was too
+  weak to stop the run. A snippet whose every occurrence falls under a reference-list
+  heading is now a `citation_only` **error**, so it gates CI like any other broken
+  question. The whole heading trail is tested rather than the innermost heading, because
+  PDF converters promote running page headers to headings and one of those inside a
+  bibliography would otherwise mask it. Measured before the rule was written: 2 of 2
+  known artifacts caught, 0 false positives across the 152 gold snippets of the example
+  corpus and the test handbook.
+
 ### Fixed
 - **With `--compare-retrievers`, the recommendation could answer a question nobody
   asked.** The gate ranked the cells of the strategy x retriever matrix and tested the
