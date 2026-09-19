@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2026-09-19
 
+### Fixed
+- **The release build toolchain is pinned.** `release.yml` installed `build` and `twine`
+  unpinned, and `pyproject.toml` required `hatchling` unpinned — a publish gate depending
+  on whatever two third-party tools released that morning, the same shape as the `ruff`
+  drift that turned CI red in 0.3.0. The coupling is real and was hit while preparing this
+  release: hatchling writes `Metadata-Version: 2.5`, which twine 6.2 rejects outright and
+  twine 7 accepts. Both ends are now bounded, because the failure would land *during* a
+  publish, on a version number PyPI never lets you reuse.
+
 Everything below came out of one run: 26 CRISPR review papers, 60 hand-written
 questions, `--compare-retrievers`. That single run found more defects than the whole
 test suite, and two of them were in the sentence the tool exists to produce.
