@@ -92,3 +92,47 @@ def test_the_text_loader_fallback_warning_still_fires_separately():
 @pytest.mark.parametrize("text", ["�" + CLEAN, CLEAN + "�"])
 def test_replacement_at_either_edge_is_counted(text):
     assert _warning(_run([_doc("edge", text)]), "U+FFFD") is not None
+
+
+# --- gold snippets too short to mean anything -----------------------------------
+
+
+def _run_with(questions: list[Question]):
+    config = default_config()
+    config.embedding.backend = "fake"
+    return run_evaluation([_doc("handbook", CLEAN)], questions, config)
+
+
+def _short_question(qid: str, snippet: str) -> Question:
+    return Question(id=qid, query="how is overtime paid?", gold_snippets=[snippet])
+
+
+def test_short_gold_snippets_are_reported_by_run():
+    """`validate` has always said this, but it is opt-in. Measured with the
+    default fuzzy threshold, a 2-token snippet matches an unrelated 1500-word
+    chunk 97% of the time — a bias toward the strategy with the biggest chunks,
+    which is exactly what the tool is supposed to be measuring."""
+    report = _run_with([_short_question("q0", "hourly rate"), _short_question("q1", CLEAN)])
+
+    warning = _warning(report, "under 5 tokens")
+    assert warning is not None
+    assert "q0" in warning and "q1" not in warning
+
+
+def test_long_gold_snippets_raise_nothing():
+    report = _run_with([_short_question("q0", CLEAN), _short_question("q1", CLEAN)])
+
+    assert _warning(report, "under 5 tokens") is None
+
+
+def test_snippets_and_questions_are_counted_separately():
+    """One question can carry several short snippets; both numbers matter when
+    deciding how much of the question set is affected."""
+    report = _run_with(
+        [
+            Question(id="q0", query="pay?", gold_snippets=["hourly rate", "1.5x"]),
+            _short_question("q1", "beyond forty"),
+        ]
+    )
+
+    assert "3 gold snippet(s) across 2 question(s)" in _warning(report, "under 5 tokens")

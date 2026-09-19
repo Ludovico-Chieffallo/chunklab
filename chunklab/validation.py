@@ -16,6 +16,14 @@ from chunklab.chunkers.base import section_path_at
 from chunklab.models import Document, Question
 from chunklab.text_utils import count_tokens
 
+#: Gold snippets shorter than this match by accident, and the odds rise sharply
+#: with chunk size: measured with the default 0.90 fuzzy threshold, the 2-token
+#: 'annual report' hit an unrelated 50-word chunk 12% of the time and an
+#: unrelated 1500-word chunk 97% of the time, while a 12-token sentence never
+#: hit at any size. That is a bias toward whichever strategy makes the biggest
+#: chunks, on top of the containment bias `balanced` already prices in.
+MIN_GOLD_TOKENS = 5
+
 #: Headings under which text is a list of works cited rather than prose.
 BIBLIOGRAPHY_HEADING = re.compile(
     r"^\s*(?:\d+[.)]?\s*)?(references|bibliography|works cited|literature cited|reference list)\b",
@@ -156,7 +164,7 @@ def validate_questions(
     questions: list[Question],
     documents: list[Document],
     fuzzy_threshold: float = 0.90,
-    min_gold_tokens: int = 5,
+    min_gold_tokens: int = MIN_GOLD_TOKENS,
 ) -> ValidationReport:
     """Check a question set against the corpus it will be evaluated on."""
     report = ValidationReport(num_questions=len(questions))

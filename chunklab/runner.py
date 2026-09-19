@@ -457,6 +457,26 @@ def run_evaluation(
             "are unlikely to be statistically meaningful; aim for at least 15-20."
         )
 
+    # `validate` says this too, but it is opt-in and a run must not quietly
+    # score a question set whose snippets match by accident.
+    from chunklab.validation import MIN_GOLD_TOKENS
+
+    brief = [
+        (q.id, gold)
+        for q in scored_questions
+        for gold in q.gold_snippets
+        if count_tokens(gold) < MIN_GOLD_TOKENS
+    ]
+    if brief:
+        shown = ", ".join(f"{qid} ({gold[:30]!r})" for qid, gold in brief[:3])
+        warnings.append(
+            f"{len(brief)} gold snippet(s) across "
+            f"{len({qid for qid, _ in brief})} question(s) are under {MIN_GOLD_TOKENS} tokens "
+            f"({shown}); short snippets match by accident, and the odds grow with chunk size, "
+            "so they inflate whichever strategy produces the largest chunks. Lengthen them, "
+            "or run 'chunklab validate' to see each one in context."
+        )
+
     unreviewed = sum(1 for q in scored_questions if not q.reviewed)
     if unreviewed:
         warnings.append(
