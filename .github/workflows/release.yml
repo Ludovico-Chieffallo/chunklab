@@ -18,9 +18,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # Pinned to major ranges, for the same reason ruff is pinned in
+      # pyproject.toml: an unpinned gate depends on whatever two third-party
+      # tools released this morning. The coupling here is real and was hit
+      # while preparing 0.4.0 — hatchling writes `Metadata-Version: 2.5`, which
+      # twine 6.2 rejects outright and twine 7 accepts. Unpinned, the day
+      # hatchling outruns twine the break lands *during* a publish, on a
+      # version number that can never be reused.
       - name: Build sdist and wheel
         run: |
-          pip install build twine
+          pip install 'build>=1.6,<2' 'twine>=7.0,<8'
           python -m build
           twine check dist/*
       - uses: actions/upload-artifact@v4

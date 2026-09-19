@@ -1,5 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+# Upper-bounded deliberately: hatchling decides the `Metadata-Version` the wheel
+# carries, and twine has to be new enough to read it. Pinning twine in
+# release.yml only covers one end of that pair — a hatchling major that emits a
+# newer metadata version would break the publish from the other side, on a
+# version number PyPI never lets you reuse.
+requires = ["hatchling>=1.32,<2"]
 build-backend = "hatchling.build"
 
 [project]
