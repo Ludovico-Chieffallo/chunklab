@@ -74,6 +74,30 @@ def _english_model_on_foreign_corpus(model: str, documents: list[Document]) -> l
     ]
 
 
+#: What a decoder or a PDF converter leaves behind when it cannot resolve a
+#: character. Not cosmetic: on a 26-paper corpus these stood in for primes, en
+#: dashes, '≈', a 'Ć' in an author's name and an entire line of Chinese, and one
+#: gold snippet copied from such a passage dropped to a 99% fuzzy match.
+REPLACEMENT_CHAR = "�"
+
+
+def _undecodable(documents: list[Document]) -> list[tuple[str, int, float]]:
+    """(id, count, per-10k rate) per document holding replacement characters.
+
+    Worst rate first, so the names printed in a truncated warning are the ones
+    worth opening.
+    """
+    damaged = [
+        (doc.id, doc.text.count(REPLACEMENT_CHAR), len(doc.text))
+        for doc in documents
+        if REPLACEMENT_CHAR in doc.text
+    ]
+    return sorted(
+        ((doc_id, count, count / max(size, 1) * 10_000) for doc_id, count, size in damaged),
+        key=lambda item: -item[2],
+    )
+
+
 def _result_key(result: StrategyResult) -> str:
     """Identity of one cell of the strategy x retriever matrix."""
     return f"{result.strategy}|{result.retriever}"
@@ -401,6 +425,20 @@ def run_evaluation(
         warnings.append(
             f"{len(guessed)} document(s) were not valid UTF-8 and were decoded by fallback "
             f"({', '.join(guessed[:5])}); re-save them as UTF-8 if accents look wrong."
+        )
+
+    # The check above reads a flag only the text loader sets, so it never saw a
+    # damaged PDF. Counting the replacement characters in the extracted text
+    # catches every loader.
+    damaged = _undecodable(documents)
+    if damaged:
+        total = sum(count for _, count, _ in damaged)
+        worst = ", ".join(f"{doc_id} ({count})" for doc_id, count, _ in damaged[:3])
+        warnings.append(
+            f"{len(damaged)} document(s) hold {total} replacement character(s) (U+FFFD) that "
+            f"the converter could not decode ({worst}); the original characters are lost, so "
+            "gold snippets copied from those passages will not match exactly and retrieval "
+            "sees the damage too."
         )
 
     scored_questions = [q for q in questions if q.gold_snippets]
