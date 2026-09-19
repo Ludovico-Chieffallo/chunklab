@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **With `--compare-retrievers`, the recommendation could answer a question nobody
+  asked.** The gate ranked the cells of the strategy x retriever matrix and tested the
+  top two, and those two routinely differ on one axis only. On a run over 26 CRISPR
+  review papers the top two cells were `recursive + hybrid` and `recursive + bm25` — the
+  *same chunker* — so the report declared "no winner", asked for 109 more questions, and
+  said nothing about chunking, while under that retriever `recursive` beat `semantic` by
+  +0.325 recall with a 95% CI of [+0.150, +0.525]. The run had decided the one question
+  chunklab exists to answer and the tool hid it behind a comparison of two retrievers.
+
+  A matrix now gets one gated verdict per axis: which chunker, holding the retriever
+  fixed, and which retriever, holding the chunker fixed. The held value is the best
+  performer on its own axis and was therefore chosen from the same data, so each verdict
+  says so instead of presenting the pairing as a general fact. Single-retriever reports
+  are unchanged, down to the byte.
+- **A named winner now states its margin and interval.** "It gave the best retrieval on
+  your corpus (balanced = 0.65)" is the unfalsifiable claim this tool exists to refuse;
+  the sentence now carries the gap over the runner-up and its 95% CI.
+
 ## [0.3.0] - 2026-07-28
 
 Everything below shipped after 0.2.0. The headline is not a feature: several of these

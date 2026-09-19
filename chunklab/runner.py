@@ -2,6 +2,7 @@
 
 import hashlib
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -78,8 +79,25 @@ def _result_key(result: StrategyResult) -> str:
     return f"{result.strategy}|{result.retriever}"
 
 
-def _label(result: StrategyResult, show_retriever: bool) -> str:
-    return f"{result.strategy} + {result.retriever}" if show_retriever else result.strategy
+@dataclass(frozen=True)
+class _Axis:
+    """One dimension of the comparison, and the words used to talk about it.
+
+    Ranking cells of a strategy x retriever matrix against each other produces
+    a verdict about whichever axis happens to separate them, which is not the
+    axis the reader asked about. Each axis is compared on its own instead, so
+    `name` reads the competitor's label off a result and the rest is grammar.
+    """
+
+    heading: str  # block label when both axes are reported
+    subject: str  # "Use RECURSIVE <subject>"
+    choice: str  # the unit being chosen
+    choices: str  # its plural
+    name: Callable[[StrategyResult], str]
+
+
+CHUNKING = _Axis("Chunking", "chunking", "strategy", "strategies", lambda r: r.strategy)
+RETRIEVAL = _Axis("Retrieval", "retrieval", "retriever", "retrievers", lambda r: r.retriever)
 
 
 def _rank_key(result: StrategyResult, ranking_metric: str):
@@ -97,80 +115,156 @@ def _per_question_recalls(result: StrategyResult) -> list[float]:
     return [q.gold_found_count / q.gold_total for q in result.per_question if q.gold_total > 0]
 
 
+def _mean_recall(results: list[StrategyResult]) -> float:
+    return sum(r.recall_at_k for r in results) / len(results) if results else 0.0
+
+
+def _best_on(ranked: list[StrategyResult], axis: _Axis) -> str:
+    """The value of `axis` with the best mean recall across the other axis.
+
+    Ties break on the name, so two runs over identical inputs cannot disagree
+    about which value to hold fixed.
+    """
+    groups: dict[str, list[StrategyResult]] = {}
+    for result in ranked:
+        groups.setdefault(axis.name(result), []).append(result)
+    return min(groups, key=lambda value: (-_mean_recall(groups[value]), value))
+
+
+def _paired_gap(
+    leader: StrategyResult, runner_up: StrategyResult, config: Config
+) -> tuple[float, tuple[float, float], int] | None:
+    """(difference, 95% CI, n) of mean per-question recall, paired over questions.
+
+    None when the two were not scored on the same questions — the one case
+    where pairing them would be a lie.
+    """
+    a, b = _per_question_recalls(leader), _per_question_recalls(runner_up)
+    if not a or len(a) != len(b):
+        return None
+    from chunklab.eval.significance import paired_bootstrap_diff_ci
+
+    diff = sum(a) / len(a) - sum(b) / len(b)
+    ci = paired_bootstrap_diff_ci(
+        a, b, resamples=config.eval.bootstrap_resamples, seed=config.eval.seed
+    )
+    return diff, ci, len(a)
+
+
+def _tie_advice(
+    ranked: list[StrategyResult], axis: _Axis, diff: float, ci: tuple[float, float], n: int
+) -> str:
+    from chunklab.eval.significance import estimate_questions_to_separate
+
+    needed = estimate_questions_to_separate(n, diff, ci)
+    if needed:
+        return (
+            f" Roughly {needed} scored questions would be needed to separate them at the"
+            f" observed difference. Add questions before committing to a {axis.choice}."
+        )
+    # They retrieve equally well, so the choice should be made on cost rather
+    # than on more evidence - when there is a cost difference.
+    cheaper = min(ranked[:2], key=lambda r: r.retrieved_tokens_at_k)
+    dearer = max(r.retrieved_tokens_at_k for r in ranked[:2])
+    if round(cheaper.retrieved_tokens_at_k) >= round(dearer):
+        # Equal cost too: offering "123 tokens against 123" as a tiebreaker
+        # reads as a bug, and it is on the small corpora people try first,
+        # where every strategy scores the same.
+        return (
+            " They also retrieve the same amount of context, so nothing here distinguishes"
+            f" them: this corpus and question set cannot tell these {axis.choices} apart."
+            " Add documents, or questions whose answers sit in different places."
+        )
+    return (
+        " The difference is too small for any realistic number of questions to separate"
+        f" them, so choose on cost instead: '{axis.name(cheaper)}' retrieves"
+        f" {cheaper.retrieved_tokens_at_k:.0f} tokens per question against {dearer:.0f}."
+    )
+
+
+def _verdict(
+    ranked: list[StrategyResult], config: Config, num_scored: int, axis: _Axis
+) -> tuple[str, bool]:
+    """The gated sentence for one axis, and whether it named a winner.
+
+    A winner is named only when a paired bootstrap separates the top two; the
+    margin and its interval are stated with it, because "best" on its own is
+    the unfalsifiable claim this tool exists to refuse.
+    """
+    best = ranked[0]
+    metric = config.eval.ranking_metric
+    metric_attr = "balanced_score" if metric == "balanced" else metric
+    metric_label = metric.replace("_at_k", f"@{config.retrieval.top_k}").replace("_", " ")
+
+    gap = _paired_gap(ranked[0], ranked[1], config) if len(ranked) > 1 else None
+    if gap is not None:
+        diff, ci, n = gap
+        if ci[0] <= 0.0 <= ci[1]:
+            return (
+                f"No winner: '{axis.name(ranked[0])}' and '{axis.name(ranked[1])}' are"
+                f" statistically indistinguishable on {num_scored} scored questions"
+                f" (recall difference {diff:+.3f}, 95% CI [{ci[0]:+.3f}, {ci[1]:+.3f}]"
+                f" includes zero)." + _tie_advice(ranked, axis, diff, ci, n),
+                False,
+            )
+
+    params = ", ".join(f"{key}={val}" for key, val in best.config.items())
+    sentence = (
+        f"Use {axis.name(best).upper()} {axis.subject}"
+        + (f" ({params})." if params and axis is CHUNKING else ".")
+        + " It gave the best retrieval on your corpus"
+        + f" ({metric_label} = {getattr(best, metric_attr):.2f})"
+    )
+    if gap is not None:
+        diff, ci, _n = gap
+        sentence += (
+            f", beating '{axis.name(ranked[1])}' by {diff:+.3f} recall"
+            f" (95% CI [{ci[0]:+.3f}, {ci[1]:+.3f}])"
+        )
+    return sentence + ".", True
+
+
 def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scored: int) -> str:
     if not ranked:
         return "No strategies were evaluated."
+
+    if len({r.retriever for r in ranked}) == 1:
+        return _chunking_block(ranked, config, num_scored)
+
+    # A matrix ranks cells, and the top two routinely differ on one axis only.
+    # On a real run both were 'recursive', so the report compared two retrievers
+    # and said nothing about chunking while the chunking axis was in fact
+    # decided. Each axis is therefore gated on its own, holding the other at its
+    # best performer - a value picked from these same data, which the text says
+    # rather than presenting the pairing as a general fact.
+    blocks = []
+    for axis, other in ((CHUNKING, RETRIEVAL), (RETRIEVAL, CHUNKING)):
+        held = _best_on(ranked, other)
+        slice_ = [r for r in ranked if other.name(r) == held]
+        body = (
+            _chunking_block(slice_, config, num_scored)
+            if axis is CHUNKING
+            else _verdict(slice_, config, num_scored, axis)[0]
+        )
+        competitors = len({other.name(r) for r in ranked})
+        blocks.append(
+            f"{axis.heading} — {body} Measured under '{held}', the best of the"
+            f" {competitors} {other.choices} compared and itself chosen from these data."
+        )
+    return "\n\n".join(blocks)
+
+
+def _chunking_block(ranked: list[StrategyResult], config: Config, num_scored: int) -> str:
+    """The chunking verdict plus the diagnostics that explain it."""
+    verdict, decided = _verdict(ranked, config, num_scored, CHUNKING)
+    if not decided:
+        return verdict
+
     best, worst = ranked[0], ranked[-1]
     metric = config.eval.ranking_metric
     metric_attr = "balanced_score" if metric == "balanced" else metric
-    k = config.retrieval.top_k
-    metric_label = metric.replace("_at_k", f"@{k}").replace("_", " ")
-    params = ", ".join(f"{key}={val}" for key, val in best.config.items())
-    # With a matrix, naming the strategy alone would hide half the recommendation.
-    matrix = len({r.retriever for r in ranked}) > 1
-
-    # Statistical gate: recommend only if the top-2 gap survives a paired bootstrap.
-    if len(ranked) > 1:
-        from chunklab.eval.significance import (
-            estimate_questions_to_separate,
-            paired_bootstrap_diff_ci,
-        )
-
-        a, b = _per_question_recalls(ranked[0]), _per_question_recalls(ranked[1])
-        if a and len(a) == len(b):
-            diff = sum(a) / len(a) - sum(b) / len(b)
-            ci = paired_bootstrap_diff_ci(
-                a, b, resamples=config.eval.bootstrap_resamples, seed=config.eval.seed
-            )
-            if ci[0] <= 0.0 <= ci[1]:
-                needed = estimate_questions_to_separate(len(a), diff, ci)
-                if needed:
-                    advice = (
-                        f" Roughly {needed} scored questions would be needed to separate"
-                        " them at the observed difference. Add questions before committing"
-                        " to a strategy."
-                    )
-                else:
-                    # They retrieve equally well, so the choice should be made on cost
-                    # rather than on more evidence - when there is a cost difference.
-                    cheaper = min(ranked[:2], key=lambda r: r.retrieved_tokens_at_k)
-                    dearer = max(r.retrieved_tokens_at_k for r in ranked[:2])
-                    advice = (
-                        " The difference is too small for any realistic number of questions"
-                        " to separate them, so choose on cost instead:"
-                        f" '{_label(cheaper, matrix)}'"
-                        f" retrieves {cheaper.retrieved_tokens_at_k:.0f} tokens per question"
-                        f" against {dearer:.0f}."
-                    )
-                    if round(cheaper.retrieved_tokens_at_k) >= round(dearer):
-                        # Equal cost too: offering "123 tokens against 123" as a
-                        # tiebreaker reads as a bug, and it is on the small corpora
-                        # people try first, where every strategy scores the same.
-                        advice = (
-                            " They also retrieve the same amount of context, so nothing"
-                            " here distinguishes them: this corpus and question set cannot"
-                            " tell these strategies apart. Add documents, or questions"
-                            " whose answers sit in different places."
-                        )
-                return (
-                    f"No winner: '{_label(ranked[0], matrix)}' and"
-                    f" '{_label(ranked[1], matrix)}' are"
-                    f" statistically indistinguishable on {num_scored} scored questions"
-                    f" (recall difference {diff:+.3f}, 95% CI [{ci[0]:+.3f}, {ci[1]:+.3f}]"
-                    f" includes zero).{advice}"
-                )
-
-    headline = (
-        f"Use {best.strategy.upper()} chunking with {best.retriever.upper()} retrieval"
-        if matrix
-        else f"Use {best.strategy.upper()} chunking"
-    )
-    lines = [
-        headline
-        + (f" ({params})." if params else ".")
-        + f" It gave the best retrieval on your corpus "
-        f"({metric_label} = {getattr(best, metric_attr):.2f})."
-    ]
+    metric_label = metric.replace("_at_k", f"@{config.retrieval.top_k}").replace("_", " ")
+    lines = [verdict]
 
     if worst.chunk_health.pct_tiny >= 0.30 and worst.strategy != best.strategy:
         line = (
