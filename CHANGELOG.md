@@ -44,6 +44,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   corpus and the test handbook.
 
 ### Fixed
+- **Sentence splitting was quadratic in document length.** The abbreviation lookback
+  sliced from offset 0 and re-split the whole prefix at every candidate boundary, so cost
+  grew with the square of the text: 2.9 s on one real 10-K, 154 s on a 12,000-sentence
+  document. Only the last word before the boundary is ever read, so the lookback is now a
+  64-character window — an order of magnitude more than the longest abbreviation.
+  Verified identical on 33 real documents (26 CRISPR papers, the example corpus, an Apple
+  10-K, a Microsoft annual report): **zero** differing spans, 30.85 s of splitting down to
+  0.114 s. It runs once per document for each of the two semantic strategies, so a corpus
+  of large PDFs was paying it twice over.
+- **`precision_at_k` divided by `k` even when fewer than `k` chunks existed.** A retriever
+  returns `min(k, len(chunks))`, so on a corpus smaller than `k` a perfect result was
+  reported as a miss: three chunks retrieved, all three relevant, scored 0.60 at k=5 —
+  the one-page corpus a new user tries first. It now divides by what was actually
+  retrieved; runs with enough chunks are unaffected.
+- **`python -m chunklab` printed nothing and exited 0.** There was no `__main__.py`, so
+  the module form — what people reach for when the console script is not on PATH, in an
+  unactivated virtualenv or in CI — looked like a broken install.
+- **The pre-commit hooks had never run.** `.git/hooks` held only the `.sample` files, so
+  nothing in `.pre-commit-config.yaml` was ever executed; that is how trailing whitespace
+  reached `main` and turned the CI format gate red. The config also pinned ruff `v0.8.4`
+  while CI and the `dev` extra use `>=0.16,<0.17`, so installing the hooks as they stood
+  would have enforced a different formatter from the one gating the build. Bumped to
+  `v0.16.0`, with the coupling written down.
 - **With `--compare-retrievers`, the recommendation could answer a question nobody
   asked.** The gate ranked the cells of the strategy x retriever matrix and tested the
   top two, and those two routinely differ on one axis only. On a run over 26 CRISPR
