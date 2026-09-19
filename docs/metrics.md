@@ -62,6 +62,50 @@ whose recall lead is larger than the penalty — which is the intended behaviour
 pinned by a slow test. On this corpus no recall gap is small enough for the penalty to
 change first place; the metric breaks near-ties, it does not manufacture upsets.
 
+## What recall measures, and what it does not
+
+Recall is **span localisation**, not answerability: it asks whether the passage *you
+annotated* reached the top k, not whether an answer did. On a corpus where one document
+covers the ground, those are the same question. On a redundant corpus they are not.
+
+Measured on 26 CRISPR review papers, 18 scored questions, `recursive` + hybrid at k=5.
+Asked *"What DNA sequence requirement is necessary for Cas9 target recognition?"*, every
+one of the 15 strategy × retriever cells retrieved a section headed `### PAM` reading
+"The protospacer-adjacent motif (PAM) is strictly required to be immediately next to the
+3' end of the target sequence… the PAM is typically NGG" — a fuller answer than the
+annotated gold — and every one scored zero. Reading all seven missed questions by hand,
+at least three were of this kind.
+
+**chunklab does not try to detect this, and the reason is measured.** Two automatic
+judges were built and rejected:
+
+| judge | result on the same 90 (question, chunk) pairs |
+|---|---|
+| bi-encoder similarity to the gold | AUC **0.617** against chance 0.5; at a threshold calibrated on the chunks that did match, 73% of chunks that provably contain no gold were marked "equivalent" |
+| `ms-marco-MiniLM-L-6-v2` cross-encoder | better — it rejected the passage about *adenine* editing that the bi-encoder scored 0.768 on a *cytosine* question — but still interleaved on the five hand-read cases |
+
+A bi-encoder cannot separate "answers this" from "is about this", which is unsurprising:
+it is the same model that did the retrieval, grading its own work. Shipping either would
+mean a warning that fires on most misses and is right about half the time.
+
+The fix is to let you declare the equivalence instead of having a model guess it. Write
+the alternatives as a nested list and the slot is filled by any of them:
+
+```yaml
+gold_snippets:
+  - - "must be immediately adjacent to the NGG motif"
+    - "the PAM is strictly required to be immediately next to the 3' end"
+    - "the PAM is typically NGG"
+```
+
+Before slots existed this made things *worse*: `gold_snippets` was conjunctive, so three
+equally valid passages with one retrieved scored 0.33 and the honest annotation was
+punished. Reproduce the improvement by adding the variants above to that question and
+re-running: it goes from 0 of 2 slots to 1 of 1, and corpus recall from 0.639 to 0.694.
+
+Until the alternatives are annotated, **read recall on a redundant corpus as a lower
+bound**, and prefer comparing strategies to reading the absolute number.
+
 ## Retrieval mode
 
 Chunking is only half of the pipeline. `--compare-retrievers` (or

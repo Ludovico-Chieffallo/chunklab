@@ -8,7 +8,7 @@ template renders as percentage widths.
 
 from pydantic import BaseModel
 
-from chunklab.eval.gold_match import normalize
+from chunklab.eval.gold_match import normalize, variants
 from chunklab.models import Chunk, Document, Question
 
 
@@ -75,7 +75,7 @@ def build_doc_viz(
 
         markers: list[GoldMarker] = []
         for q in questions:
-            for gold in q.gold_snippets:
+            for gold in (g for slot in q.gold_snippets for g in variants(slot)):
                 span = _locate_gold(document.text, gold)
                 if span is None:
                     continue

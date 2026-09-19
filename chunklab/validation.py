@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from rapidfuzz import fuzz
 
 from chunklab.chunkers.base import section_path_at
+from chunklab.eval.gold_match import variants
 from chunklab.models import Document, Question
 from chunklab.text_utils import count_tokens
 
@@ -197,7 +198,7 @@ def validate_questions(
             continue
 
         report.num_scored += 1
-        for gold in q.gold_snippets:
+        for gold in (g for slot in q.gold_snippets for g in variants(slot)):
             report.num_gold_snippets += 1
             norm_gold, _ = normalize_with_map(gold)
 

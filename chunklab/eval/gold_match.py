@@ -4,9 +4,18 @@ import re
 
 from rapidfuzz import fuzz
 
-from chunklab.models import Question, QuestionResult, RetrievedChunk
+from chunklab.models import GoldSlot, Question, QuestionResult, RetrievedChunk
 
 _WS_RE = re.compile(r"\s+")
+
+
+def variants(slot: GoldSlot) -> list[str]:
+    """The interchangeable passages that fill one gold slot.
+
+    A plain string is a slot with a single variant, which is what every
+    question set written before nested slots existed contains.
+    """
+    return [slot] if isinstance(slot, str) else list(slot)
 
 
 def normalize(text: str) -> str:
@@ -39,15 +48,23 @@ def score_question(
     strategy: str,
     fuzzy_threshold: float = 0.90,
 ) -> QuestionResult:
-    """Mark hits on the retrieved chunks and compute per-question outcomes."""
-    gold_total = len(question.gold_snippets)
+    """Mark hits on the retrieved chunks and compute per-question outcomes.
+
+    Each entry of `gold_snippets` is a slot, and recall is the fraction of
+    slots filled. A slot written as a list is filled by *any* of its variants:
+    on a corpus where several documents answer the same question, that is the
+    only way to annotate all the places the answer lives without the extra
+    annotations counting against the score.
+    """
+    slots = [variants(slot) for slot in question.gold_snippets]
+    gold_total = len(slots)
     found: set[int] = set()
     first_hit_rank: int | None = None
 
     for rc in retrieved:
         rc.is_hit = False
-        for gi, gold in enumerate(question.gold_snippets):
-            if snippet_in_text(gold, rc.chunk.text, fuzzy_threshold):
+        for gi, slot in enumerate(slots):
+            if any(snippet_in_text(gold, rc.chunk.text, fuzzy_threshold) for gold in slot):
                 rc.is_hit = True
                 found.add(gi)
                 if first_hit_rank is None:
@@ -55,16 +72,16 @@ def score_question(
 
     split_across = False
     if len(found) < gold_total:
-        # Would any missing snippet be found by joining two adjacent retrieved chunks?
-        missing = [g for i, g in enumerate(question.gold_snippets) if i not in found]
+        # Would any unfilled slot be filled by joining two adjacent retrieved chunks?
+        missing = [slot for i, slot in enumerate(slots) if i not in found]
         pairs = [
             (a, b) for i, a in enumerate(retrieved) for b in retrieved[i + 1 :] if _adjacent(a, b)
         ]
-        for gold in missing:
+        for slot in missing:
             for a, b in pairs:
                 first, second = sorted((a, b), key=lambda rc: rc.chunk.char_span[0])
                 joined = first.chunk.text + " " + second.chunk.text
-                if snippet_in_text(gold, joined, fuzzy_threshold):
+                if any(snippet_in_text(gold, joined, fuzzy_threshold) for gold in slot):
                     split_across = True
                     break
             if split_across:
