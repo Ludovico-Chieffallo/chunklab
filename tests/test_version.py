@@ -32,3 +32,21 @@ def test_version_is_a_release_number():
         f"{chunklab.__version__!r} is not MAJOR.MINOR.PATCH — the release workflow "
         "routes tags containing 'rc' to TestPyPI and everything else to PyPI"
     )
+
+
+def test_module_entry_point_runs():
+    """`python -m chunklab` printed nothing and exited 0 before chunklab/__main__.py
+    existed, which reads as a broken install. It is what people reach for when the
+    console script is not on PATH — an unactivated virtualenv, or CI."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-m", "chunklab", "--version"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "chunklab" in result.stdout
