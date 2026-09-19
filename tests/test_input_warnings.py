@@ -94,6 +94,39 @@ def test_replacement_at_either_edge_is_counted(text):
     assert _warning(_run([_doc("edge", text)]), "U+FFFD") is not None
 
 
+# --- documents that load but contribute nothing ---------------------------------
+
+
+def test_documents_without_text_are_counted_separately():
+    """A scanned PDF loads, counts, and contributes no chunks. The CRISPR run
+    printed "26 document(s)" over an index built from 25."""
+    report = _run([_doc("paper", CLEAN), _doc("scan", "   ")])
+
+    assert report.corpus_summary["num_documents"] == 2
+    assert report.corpus_summary["num_documents_with_text"] == 1
+
+
+def test_the_two_counts_agree_when_every_document_has_text():
+    report = _run([_doc("a", CLEAN), _doc("b", CLEAN)])
+    summary = report.corpus_summary
+
+    assert summary["num_documents"] == summary["num_documents_with_text"] == 2
+
+
+def test_the_header_shows_both_counts_only_when_they_differ():
+    from rich.console import Console
+
+    from chunklab.report.console import print_report
+
+    def header(report) -> str:
+        console = Console(record=True, width=200, force_terminal=False)
+        print_report(report, console)
+        return console.export_text()
+
+    assert "(1 with extractable text)" in header(_run([_doc("a", CLEAN), _doc("scan", " ")]))
+    assert "with extractable text" not in header(_run([_doc("a", CLEAN)]))
+
+
 # --- gold snippets too short to mean anything -----------------------------------
 
 

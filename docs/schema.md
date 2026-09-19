@@ -8,7 +8,7 @@
 of an existing field bumps MAJOR and requires a deprecation entry in the
 [CHANGELOG](https://github.com/Ludovico-Chieffallo/chunklab/blob/main/CHANGELOG.md). Consumers should tolerate unknown fields.
 
-Current version: **1.3**.
+Current version: **1.4**.
 
 ## Top level
 
@@ -27,6 +27,7 @@ Current version: **1.3**.
 | Field | Type | Meaning |
 |---|---|---|
 | `num_documents` | int | Documents loaded. |
+| `num_documents_with_text` | int | *(1.4)* Documents that yielded extractable text and therefore contributed chunks. Lower than `num_documents` when a scanned PDF, or any file the loader could not read text from, was included: those load and count but contribute nothing to the index. |
 | `documents` | array[str] | Document ids (file stems), in evaluation order (sorted by path at load time). |
 | `num_questions` | int | Questions provided. |
 | `num_scored_questions` | int | Questions with at least one gold snippet (only these are scored). |

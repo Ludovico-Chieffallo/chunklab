@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`chunklab run` now reports three input defects it used to accept in silence**, all
+  found by running the tool over 26 real, PDF-converted research papers:
+  - **Undecodable text.** The encoding warning read a flag only the text loader sets, so
+    a damaged PDF passed through without a word — 13 of 26 documents held 178 `U+FFFD`
+    between them. They are not cosmetic: on that corpus the replacement character stood
+    in for `©`, primes, `≈` in "≈20% sequence identity", an en dash in "crRNA–tracrRNA",
+    the `Ć` of an author's surname, and a whole line of Chinese. One gold snippet copied
+    from such a passage could then only match at 99% fuzzy. Counted on the extracted
+    text, so every loader is covered, and documents are ranked by density.
+  - **Gold snippets under five tokens.** `validate` has always said this; a run never
+    did. Measured at the default fuzzy threshold, the 2-token "annual report" matches an
+    unrelated 50-word chunk 12% of the time and an unrelated 1500-word chunk **97%** of
+    the time. The rate rising with chunk size makes it a bias toward whichever strategy
+    produces the largest chunks — the same direction as the containment bias `balanced`
+    prices in, but on the measurement, where `balanced` cannot reach it. The threshold
+    now lives in `validation.MIN_GOLD_TOKENS` so the two commands cannot drift apart.
+  - **Documents that load but contribute nothing.** A scanned PDF yields no text and no
+    chunks, yet the header read "26 document(s)" over an index built from 25.
+- **`corpus_summary.num_documents_with_text`** *(schema 1.4)* — documents that yielded
+  extractable text. The console header shows both counts when they differ.
 - **`chunklab validate` refuses a gold snippet that only lives in a reference list.**
   On a run over 26 CRISPR review papers, two of the twenty scored questions had a cited
   paper's *title* as their gold snippet, present in seven to nine bibliographies and in

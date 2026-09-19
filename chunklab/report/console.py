@@ -51,8 +51,17 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
     cs = report.corpus_summary
     k = cs.get("top_k", 5)
 
+    # A scanned PDF loads and contributes nothing, so the headline count has to
+    # say how many documents the index was actually built from.
+    loaded = cs.get("num_documents", "?")
+    with_text = cs.get("num_documents_with_text")
+    documents = (
+        f"{loaded} document(s)"
+        if with_text is None or with_text == loaded
+        else f"{loaded} document(s) ({with_text} with extractable text)"
+    )
     console.print(
-        f"\n[bold]ChunkLab[/bold] — {cs.get('num_documents', '?')} document(s), "
+        f"\n[bold]ChunkLab[/bold] — {documents}, "
         f"{cs.get('num_scored_questions', '?')} scored questions, top_k={k}, "
         f"model={cs.get('embedding_model', '?')}\n"
     )

@@ -576,6 +576,10 @@ def run_evaluation(
     return EvalReport(
         corpus_summary={
             "num_documents": len(documents),
+            # A scanned PDF loads, counts, and contributes nothing. Reporting only
+            # the first number put "26 document(s)" at the top of a run whose
+            # index was built from 25.
+            "num_documents_with_text": len(documents) - len(empty),
             "documents": [d.id for d in documents],
             "num_questions": len(questions),
             "num_scored_questions": len(scored_questions),
