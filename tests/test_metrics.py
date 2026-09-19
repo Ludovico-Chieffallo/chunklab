@@ -47,6 +47,49 @@ def test_precision():
     assert precision_at_k(RESULTS, 5) == (2 / 5 + 1 / 5 + 0) / 3
 
 
+def _short_result(n_retrieved: int, hit_ranks=()) -> QuestionResult:
+    """A question whose retriever could only return `n_retrieved` chunks."""
+    retrieved = [
+        RetrievedChunk(
+            chunk=Chunk(
+                id=f"d:s:{i}", doc_id="d", text="x", token_count=1, char_span=(0, 1), strategy="s"
+            ),
+            score=0.5,
+            rank=i + 1,
+            is_hit=(i + 1) in hit_ranks,
+        )
+        for i in range(n_retrieved)
+    ]
+    return QuestionResult(
+        question_id="q",
+        strategy="s",
+        retrieved=retrieved,
+        hit=bool(hit_ranks),
+        gold_found_count=1 if hit_ranks else 0,
+        gold_total=1,
+    )
+
+
+def test_precision_divides_by_what_was_retrieved_not_by_k():
+    """A retriever returns min(k, len(chunks)). On a corpus with fewer than k
+    chunks the fixed denominator scored a perfect result as a miss: three
+    chunks retrieved, all three relevant, reported as 0.60 at k=5. That is the
+    one-page corpus a new user tries first."""
+    perfect = _short_result(3, hit_ranks=(1, 2, 3))
+
+    assert precision_at_k([perfect], 5) == 1.0
+
+
+def test_precision_is_unchanged_when_the_corpus_is_large_enough():
+    """The common case must not move: with k chunks returned the denominator is
+    k either way."""
+    assert precision_at_k(RESULTS, 5) == (2 / 5 + 1 / 5 + 0) / 3
+
+
+def test_precision_handles_a_question_with_nothing_retrieved():
+    assert precision_at_k([_short_result(0)], 5) == 0.0
+
+
 def test_empty():
     assert hit_rate_at_k([]) == 0.0
     assert recall_at_k([]) == 0.0

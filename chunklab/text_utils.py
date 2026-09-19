@@ -75,6 +75,15 @@ _SENTENCE_END_RE = re.compile(
     rf"|\n{{2,}}"
 )
 
+#: How far back to look for the word preceding a candidate boundary. Only the
+#: last whitespace-delimited token matters, and the longest entry in
+#: `_ABBREVIATIONS` is six characters, so this is generous by an order of
+#: magnitude. A token longer than the window is truncated to a fragment of this
+#: length, which cannot collide with any abbreviation either — the decision is
+#: therefore identical to reading the whole prefix, and that equivalence is
+#: pinned on real documents by tests/test_text_utils.py.
+_ABBREVIATION_LOOKBACK = 64
+
 _ABBREVIATIONS = {
     "mr",
     "mrs",
@@ -112,7 +121,10 @@ def sentence_spans(text: str) -> list[tuple[int, int]]:
         # Whitespace first: `before` always ends with the whitespace that closed the
         # sentence, so stripping punctuation first was a no-op and left "dr." — which
         # never matched the list, making every abbreviation split a sentence.
-        before = text[: m.start() + 1]
+        # Only the tail is needed. Slicing from the start of the document instead
+        # made this quadratic: every boundary re-split the whole prefix, which cost
+        # 2.9 s on one real 10-K and 154 s on a 12,000-sentence document.
+        before = text[max(0, m.start() + 1 - _ABBREVIATION_LOOKBACK) : m.start() + 1]
         last_word = re.split(r"[\s(]", before.rstrip().rstrip(".!?"))[-1].lower()
         if last_word in _ABBREVIATIONS:
             continue

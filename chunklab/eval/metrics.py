@@ -23,9 +23,20 @@ def mrr(results: list[QuestionResult]) -> float:
 
 
 def precision_at_k(results: list[QuestionResult], k: int) -> float:
+    """Mean fraction of the retrieved chunks that contain a gold snippet.
+
+    Divided by how many chunks were actually returned, not by `k`. A retriever
+    returns `min(k, len(chunks))`, so on a corpus with fewer than `k` chunks the
+    fixed denominator scored a perfect result as a miss: three chunks retrieved,
+    all three relevant, reported as 0.60 at k=5. That is the one-page corpus a
+    new user tries first.
+    """
     if not results or k <= 0:
         return 0.0
-    per_q = [sum(1 for rc in r.retrieved if rc.is_hit) / k for r in results]
+    per_q = [
+        sum(1 for rc in r.retrieved if rc.is_hit) / len(r.retrieved) if r.retrieved else 0.0
+        for r in results
+    ]
     return sum(per_q) / len(per_q)
 
 
