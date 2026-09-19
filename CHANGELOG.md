@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **A gold slot can list several interchangeable passages.** Each entry of
+  `gold_snippets` is a slot and recall is the fraction of slots filled; an entry written
+  as a nested list is filled by *any* of its variants. Plain strings are unchanged in
+  meaning and in serialisation, so no existing question set moves and no
+  `questions_sha256` shifts.
+
+  This exists because of what a run over 26 CRISPR review papers exposed. Asked what
+  sequence Cas9 needs to recognise a target, all 15 cells of the matrix retrieved a
+  section headed `### PAM` giving a fuller answer than the annotated gold, and all 15
+  scored zero: recall measures whether *the annotated passage* was found, not whether an
+  answer was. Reading all seven missed questions by hand, at least three were of that
+  kind. The natural response — annotating every place the answer appears — used to make
+  it worse, because `gold_snippets` was conjunctive: three valid passages with one
+  retrieved scored 0.33. The tool punished the honest annotation. Annotating that one
+  question properly now takes it from 0 of 2 slots to 1 of 1, and corpus recall from
+  0.639 to 0.694.
+
+  Automatic detection was attempted first and rejected on measurement, not on taste. A
+  bi-encoder scoring gold-to-chunk similarity reached AUC 0.617 against chance 0.5, and
+  at a threshold calibrated on the chunks that did match it labelled 73% of chunks
+  provably containing no gold as "equivalent" — it is the same model that did the
+  retrieval, grading its own work. A `ms-marco-MiniLM-L-6-v2` cross-encoder did better,
+  correctly rejecting an *adenine*-editing passage on a *cytosine* question, but still
+  interleaved on the hand-read cases. Either would have shipped a warning that fires on
+  most misses and is right about half the time. `docs/metrics.md` records both results.
 - **`chunklab run` now reports three input defects it used to accept in silence**, all
   found by running the tool over 26 real, PDF-converted research papers:
   - **Undecodable text.** The encoding warning read a flag only the text loader sets, so

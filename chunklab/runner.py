@@ -12,7 +12,7 @@ from chunklab.config import Config, default_config, load_questions
 from chunklab.diagnostics.chunk_health import compute_chunk_health
 from chunklab.embeddings.registry import make_embedder
 from chunklab.eval import metrics as m
-from chunklab.eval.gold_match import score_question
+from chunklab.eval.gold_match import score_question, variants
 from chunklab.eval.significance import bootstrap_mean_ci
 from chunklab.language import (
     LATIN_SCRIPT,
@@ -464,7 +464,8 @@ def run_evaluation(
     brief = [
         (q.id, gold)
         for q in scored_questions
-        for gold in q.gold_snippets
+        for slot in q.gold_snippets
+        for gold in variants(slot)
         if count_tokens(gold) < MIN_GOLD_TOKENS
     ]
     if brief:
@@ -493,7 +494,15 @@ def run_evaluation(
     )
     doc_map = {d.id: d for d in documents}
     k = config.retrieval.top_k
-    gold_tokens = {q.id: [count_tokens(g) for g in q.gold_snippets] for q in scored_questions}
+    # Per slot, the shortest variant's length. `context_efficiency` divides
+    # found-gold tokens by retrieved tokens, and the result only records which
+    # slot was filled, not which variant filled it; taking the shortest keeps
+    # the metric a lower bound rather than letting it overstate. Slots with one
+    # variant - every question set written before nested slots - are exact.
+    gold_tokens = {
+        q.id: [min(count_tokens(g) for g in variants(slot)) for slot in q.gold_snippets]
+        for q in scored_questions
+    }
 
     modes = config.retrieval.modes
     results: list[StrategyResult] = []

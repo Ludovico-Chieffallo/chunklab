@@ -101,6 +101,22 @@ questions:
     # no gold_snippets -> skipped (with a warning), so scoring stays deterministic
 ```
 
+### When the answer lives in more than one place
+
+On a corpus where several documents cover the same ground — review papers, product docs across versions, contracts from one template — a strategy can retrieve a perfectly good answer *from the wrong document* and score zero. Write the alternatives as a nested list and any one of them counts:
+
+```yaml
+  - id: q4
+    query: "What DNA sequence does Cas9 need to recognise a target?"
+    gold_snippets:
+      # one slot, three acceptable passages
+      - - "must be immediately adjacent to the NGG motif"
+        - "the PAM is strictly required to be immediately next to the 3' end"
+        - "the PAM is typically NGG"
+```
+
+Each top-level entry is a **slot** and recall is the fraction of slots filled, so alternatives raise the ceiling instead of the denominator. Plain strings still mean exactly what they always did — a slot with one acceptable passage — and mixing the two forms in one question is fine when some passages are genuinely required and others are interchangeable.
+
 Tips:
 - Copy the gold snippet **verbatim** from the source so matching is reliable (small drift is absorbed by fuzzy matching, threshold configurable).
 - A question with no `gold_snippets` is skipped — add the passage to include it.

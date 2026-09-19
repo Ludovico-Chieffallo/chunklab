@@ -35,10 +35,21 @@ class Chunk(BaseModel):
     section_path: list[str] = Field(default_factory=list)
 
 
+#: One place the answer may be found. A plain string is a single passage; a list
+#: of strings is a set of interchangeable passages, any one of which counts.
+GoldSlot = str | list[str]
+
+
 class Question(BaseModel):
     id: str
     query: str
-    gold_snippets: list[str] = Field(default_factory=list)
+    #: Slots the retrieval must fill, scored conjunctively: recall is the
+    #: fraction of slots found. A nested list makes one slot disjunctive, which
+    #: is the only way to say "the answer lives in several equally good places".
+    #: Without it, annotating a redundant corpus honestly *lowers* the score:
+    #: listing three passages that each answer the question and retrieving one
+    #: of them scored 0.33.
+    gold_snippets: list[GoldSlot] = Field(default_factory=list)
     gold_answer: str | None = None
     tags: list[str] = Field(default_factory=list)
     # False marks a machine-drafted question that no human has checked yet.
