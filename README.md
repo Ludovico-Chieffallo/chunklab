@@ -10,7 +10,7 @@ When a RAG system gives a wrong answer, the failure is often in **retrieval** �
 
 The trap is that chunking differences are usually **small and noisy**, and a few dozen questions cannot tell a real 3-point gap from a coin flip. Most comparisons declare a winner anyway. chunklab's job is to stop you from doing that.
 
-Every number it reports is gated by a paired bootstrap over your questions. If the top two strategies are indistinguishable, it says so, tells you how many more questions would settle it — or that no realistic number would — and points you at the difference that *is* decidable: how much context each one costs you on every query, forever.
+Every recommendation it makes is gated by a bootstrap over your questions, and the bar is deliberately set where picking a winner is a *selection* rather than a coin flip: a strategy is named only when it comes out best in at least 90% of resamples of your question set. When nothing clears that bar it says so — and then says what the run *can* decide: which strategies are already ruled out, how many more questions would settle the rest (or that no realistic number would), and how much context each survivor costs you on every query, forever.
 
 **On [public benchmarks](docs/benchmarks.md) this is not a hypothetical.** On QASPER (889 human-written questions, human-annotated evidence) the top two strategies differ by `+0.000` recall. At 70 questions one of them led by `+0.034` — noise that a less careful tool would have shipped as a recommendation. They are still not equivalent, though: one retrieves **35% fewer tokens** for the same recall, and that is the decision worth making.
 
@@ -24,7 +24,7 @@ You give it your documents and a handful of questions (each tagged with the "gol
 docs + questions ─▶ [fixed · recursive · semantic · structure] ─▶ ranked report + diagnostics
 ```
 
-- **Refuses to guess.** A paired bootstrap over your questions gates every recommendation; a difference that could be noise is reported as a tie, not as a winner.
+- **Refuses to guess.** A bootstrap over your questions gates every recommendation: a strategy is named only when it is genuinely the best of the field in at least 90% of resamples, which prices in the fact that it was *chosen* from that field. A lead that could be noise is reported as an undecided run — naming what is still in play and what is already out — never as a winner.
 - **Compares the retriever too.** `--compare-retrievers` evaluates every strategy under dense, BM25 and hybrid (RRF) retrieval. On the bundled corpus that axis moved recall more than the choice of chunker did — which one dominates is a property of *your* corpus, so it is measured rather than assumed.
 - **Prices the tie.** When recall is indistinguishable, `tok@k` is the tiebreaker — the tokens each strategy spends on every query for the rest of the system's life.
 - **Runs fully locally.** Default embeddings are a small local model (`BAAI/bge-small-en-v1.5`) — no API key, no telemetry, your documents never leave your machine.
@@ -67,14 +67,15 @@ This ranking holds for BAAI/bge-small-en-v1.5. Strategy order changes with the e
 with the one you deploy.
 
 Recommendation:
-  No winner: 'recursive' and 'structure' are statistically indistinguishable on 129 scored questions
-(recall difference +0.012, 95% CI [-0.074, +0.097] includes zero). Roughly 6938 scored questions 
-would be needed to separate them at the observed difference. Add questions before committing to a 
+  No single winner: 'recursive' leads but is the best of the 5 strategies compared in only 42% of 
+bootstrap resamples over 129 scored questions. 3 cannot be ruled out ('recursive', 'structure', 
+'fixed'); 'semantic' (0%), 'semantic_no_floor' (0%) can. Roughly 6938 scored questions would be 
+needed to separate the top two at the observed difference. Add questions before committing to a 
 strategy.
 ```
 <!-- END GENERATED EXAMPLE -->
 
-Note what the recommendation does here: the top two strategies are within noise of each other on 129 questions, so chunklab **refuses to name a winner** and tells you how many questions would settle it. A tool that always produces a confident answer is the problem this one exists to fix.
+Note what the recommendation does here. No strategy is best often enough across resamples to be named, so chunklab **refuses to name a winner** — but it does not stop at refusing. It reports which strategies are still in play, which the 129 questions already rule out, and how many more would settle the rest. A tool that always produces a confident answer is the problem this one exists to fix; a tool that only ever says "not enough data" is no better.
 
 The run is still decisive where the data supports it. `recursive`, `structure` and `fixed` are statistically tied, but `semantic_no_floor` is *separated* from all three — recall differences +0.111, +0.099 and +0.103, every paired-bootstrap 95% CI excluding zero. The fragment trap it demonstrates is real and measurable, and the floored `semantic` variant recovers most of it. So the actionable output is "don't ship a semantic splitter without a minimum-size floor, then pick among the top three on context cost" — which is what the `balanced` ranking does, preferring `structure` at 2,128 retrieved tokens over `fixed` at 2,447 despite `fixed`'s marginally higher recall.
 

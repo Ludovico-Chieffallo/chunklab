@@ -153,11 +153,40 @@ With few questions, small metric differences are noise. chunklab therefore:
 
 - reports `ci95` per strategy — a percentile bootstrap (default 10,000 resamples, seeded
   by `eval.seed`) confidence interval on mean per-question recall;
-- gates the recommendation on a **paired bootstrap** over questions between the top two
-  strategies: if the 95% CI of the recall difference includes zero, the report declares
-  the strategies statistically indistinguishable, estimates how many questions would be
-  needed to separate them, and recommends nothing;
+- gates the recommendation on the leader's **probability of actually being best** — the
+  share of paired bootstrap resamples of your question set in which it comes out on top.
+  A strategy is named only above `SELECTION_CONFIDENCE` (0.90); below it the report names
+  no winner, lists the candidates that cannot be ruled out, names those that can, and
+  estimates how many questions would settle the rest;
 - warns when fewer than 15 scored questions are provided.
+
+### Why a probability and not a corrected pairwise test
+
+Sorting k candidates and then testing the top two is a **selection**, not a hypothesis
+test. The maximum of k noisy estimates is biased upward, so an interval computed after
+the field has been sorted is anti-conservative precisely when it is about to name a
+winner. On a 15-cell run over 26 research papers the leading cell was genuinely best in
+only 68% of resamples, while the report spoke as if the pair at the top were the only
+candidates.
+
+Two textbook repairs were measured on this project's own corpora before the current gate
+was written, and both were rejected for making the tool *less* useful without making it
+more true:
+
+| repair | effect on the example corpus (129 questions) |
+|---|---|
+| Holm over leader-vs-rest | erases `recursive − semantic_no_floor` (+0.111, bootstrap p = 0.022), a result reproduced independently and guarded by `tests/test_claims.py` |
+| Hansen model confidence set | retains **all five** candidates, here and on an 18-question run — less informative than the uncorrected report it replaces |
+
+Counting wins needs no correction at all: the probabilities sum to one across the field,
+so the multiplicity is priced in by construction. Calibration was measured over 1,500
+simulated comparisons (3–5 candidates, correlated per-question outcomes, n ∈ {18, 30, 60,
+129}): picks reported in the 90–100% band were correct 96% of the time, and in the 80–90%
+band 82% — which is why the bar sits at 0.90 and not lower. The estimate converges as
+evidence accumulates: for a true 0.60 vs 0.55 gap the leader's probability rises from 60%
+at n = 20 to 99% at n = 1,600.
+
+Reproduce both tables with `tests/test_selection.py` and the corpora in `examples/`.
 
 The gate is computed on per-question **recall**, not on `balanced`: the context penalty
 is an aggregate quantity with no per-question decomposition, so it cannot be bootstrapped
@@ -166,10 +195,12 @@ evidence you supplied" — the ranking still orders them, and among tied strateg
 `balanced` prefers the one that spends the fewest tokens, which is a defensible
 tie-break even when recall cannot distinguish them.
 
-Ties are common and are not a failure of the tool. On the bundled example corpus the top
-three strategies are tied, while both `semantic` variants separate clearly (CI of the
-difference excludes zero) — a tie among the leaders plus a clear rejection of the
-laggards is a useful, honest result.
+An undecided run is common and is not a failure of the tool — but it must still carry
+information. On the bundled example corpus no strategy clears the bar (the leader wins
+42% of resamples), and the report says so; it also reports that three of the five remain
+in play and that **both** `semantic` variants are ruled out. A field narrowed from five
+to three, plus a clear rejection of the laggards, is an actionable result. "Not enough
+data" on its own is not.
 
 ## Chunk-health diagnostics (retrieval-independent)
 

@@ -152,20 +152,30 @@ def _paired_gap(
 
 
 def _tie_advice(
-    ranked: list[StrategyResult], axis: _Axis, diff: float, ci: tuple[float, float], n: int
+    plausible: list[StrategyResult],
+    axis: _Axis,
+    gap: tuple[float, tuple[float, float], int] | None,
 ) -> str:
+    """What to do about an undecided axis: gather evidence, or decide on cost.
+
+    `plausible` is the set that could not be ruled out, so the cost comparison
+    is made among real candidates rather than between whichever two happened to
+    sort first.
+    """
     from chunklab.eval.significance import estimate_questions_to_separate
 
-    needed = estimate_questions_to_separate(n, diff, ci)
+    needed = estimate_questions_to_separate(*(gap[2], gap[0], gap[1])) if gap else None
     if needed:
         return (
-            f" Roughly {needed} scored questions would be needed to separate them at the"
-            f" observed difference. Add questions before committing to a {axis.choice}."
+            f" Roughly {needed} scored questions would be needed to separate the top two"
+            f" at the observed difference. Add questions before committing to a {axis.choice}."
         )
+    if len(plausible) < 2:
+        return ""
     # They retrieve equally well, so the choice should be made on cost rather
     # than on more evidence - when there is a cost difference.
-    cheaper = min(ranked[:2], key=lambda r: r.retrieved_tokens_at_k)
-    dearer = max(r.retrieved_tokens_at_k for r in ranked[:2])
+    cheaper = min(plausible, key=lambda r: r.retrieved_tokens_at_k)
+    dearer = max(r.retrieved_tokens_at_k for r in plausible)
     if round(cheaper.retrieved_tokens_at_k) >= round(dearer):
         # Equal cost too: offering "123 tokens against 123" as a tiebreaker
         # reads as a bug, and it is on the small corpora people try first,
@@ -182,14 +192,52 @@ def _tie_advice(
     )
 
 
+def _undecided(
+    ranked: list[StrategyResult],
+    axis: _Axis,
+    num_scored: int,
+    chances: list[float],
+    gap: tuple[float, tuple[float, float], int] | None,
+) -> str:
+    """The verdict when no candidate is clearly best, said as informatively as
+    the evidence allows."""
+    from chunklab.eval.significance import minimal_confident_set
+
+    keep = set(minimal_confident_set(chances))
+    names = [axis.name(r) for r in ranked]
+    plausible = [names[i] for i in range(len(names)) if i in keep]
+    excluded = [f"'{names[i]}' ({chances[i]:.0%})" for i in range(len(names)) if i not in keep]
+
+    text = (
+        f"No single winner: '{names[0]}' leads but is the best of the {len(ranked)}"
+        f" {axis.choices} compared in only {chances[0]:.0%} of bootstrap resamples over"
+        f" {num_scored} scored questions."
+    )
+    if excluded:
+        text += (
+            f" {len(plausible)} cannot be ruled out ("
+            + ", ".join(f"'{name}'" for name in plausible)
+            + f"); {', '.join(excluded)} can."
+        )
+    else:
+        text += f" No {axis.choice} here can be ruled out."
+    return text + _tie_advice([ranked[i] for i in sorted(keep)], axis, gap)
+
+
 def _verdict(
     ranked: list[StrategyResult], config: Config, num_scored: int, axis: _Axis
 ) -> tuple[str, bool]:
     """The gated sentence for one axis, and whether it named a winner.
 
-    A winner is named only when a paired bootstrap separates the top two; the
-    margin and its interval are stated with it, because "best" on its own is
-    the unfalsifiable claim this tool exists to refuse.
+    The gate is the leader's probability of actually being best, not a pairwise
+    interval between the top two. Sorting k candidates and then testing the
+    first two is a selection: the maximum of k noisy estimates is biased
+    upward, so that interval is anti-conservative exactly when it matters, when
+    it is about to name a winner. `probability_best` prices the selection in.
+
+    An undecided axis still reports what it can: which candidates cannot be
+    ruled out, and which can. "No winner, add more questions" is true and
+    useless; "these three are still in play, these two are out" is both.
     """
     best = ranked[0]
     metric = config.eval.ranking_metric
@@ -197,16 +245,15 @@ def _verdict(
     metric_label = metric.replace("_at_k", f"@{config.retrieval.top_k}").replace("_", " ")
 
     gap = _paired_gap(ranked[0], ranked[1], config) if len(ranked) > 1 else None
-    if gap is not None:
-        diff, ci, n = gap
-        if ci[0] <= 0.0 <= ci[1]:
-            return (
-                f"No winner: '{axis.name(ranked[0])}' and '{axis.name(ranked[1])}' are"
-                f" statistically indistinguishable on {num_scored} scored questions"
-                f" (recall difference {diff:+.3f}, 95% CI [{ci[0]:+.3f}, {ci[1]:+.3f}]"
-                f" includes zero)." + _tie_advice(ranked, axis, diff, ci, n),
-                False,
-            )
+    scores = [_per_question_recalls(r) for r in ranked]
+    if len(ranked) > 1 and scores[0] and len({len(s) for s in scores}) == 1:
+        from chunklab.eval.significance import SELECTION_CONFIDENCE, probability_best
+
+        chances = probability_best(
+            scores, resamples=config.eval.bootstrap_resamples, seed=config.eval.seed
+        )
+        if chances[0] < SELECTION_CONFIDENCE:
+            return _undecided(ranked, axis, num_scored, chances, gap), False
 
     params = ", ".join(f"{key}={val}" for key, val in best.config.items())
     sentence = (

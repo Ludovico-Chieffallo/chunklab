@@ -80,7 +80,8 @@ def test_recommendation_declares_tie():
     ranked = [_strategy_result("fixed", scores), _strategy_result("recursive", list(scores))]
     config = default_config()
     text = _build_recommendation(ranked, config, num_scored=len(scores))
-    assert "statistically indistinguishable" in text
+    assert "No single winner" in text
+    assert "50% of bootstrap resamples" in text  # two identical candidates
     assert "Use " not in text  # no winner is recommended
 
 

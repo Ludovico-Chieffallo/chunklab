@@ -40,6 +40,8 @@ CLAIMS: dict[str, str] = {
     "35%": "structure vs recursive retrieved-token saving, QASPER 889 questions",
     # Standard confidence level, not a measurement.
     "95%": "the confidence level used throughout",
+    # The selection gate, not a measurement: eval.significance.SELECTION_CONFIDENCE.
+    "90%": "share of bootstrap resamples a strategy must win before it is named",
 }
 
 #: Pages reporting measured results must carry a "Reproducing" section.
