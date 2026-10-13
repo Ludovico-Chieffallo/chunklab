@@ -55,6 +55,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   also installs PyMuPDF (via `pymupdf4llm`), licensed under the GNU AGPL v3 or a
   commercial licence. The License section now names it; a test keeps that true for as
   long as an AGPL distribution is declared, required or optional.
+- **The sdist ships an explicit list of files.** hatchling's default takes every file
+  this repository's .gitignore does not exclude, so a file kept out of git by any
+  other rule went into an sdist built from a working tree: building 0.4.1 locally as a
+  pre-tag check put `.claude/settings.local.json` into the archive. The release
+  workflow builds from a clean checkout and nothing was published this way, but one
+  manual upload would have done it. `.github/`, `.pre-commit-config.yaml` and a stray
+  `.github_refresh` no longer ship either.
 
 ### Changed
 - **A release is verified on the artifact that will be published.** 0.4.0 passed its

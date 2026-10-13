@@ -14,3 +14,6 @@ local_corpus/
 # Private working notes: rigour backlog, open risks, review findings.
 TO_DO.md
 real_test
+
+# Claude Code's per-machine settings; .claude/settings.json is meant to be shared.
+.claude/settings.local.json
