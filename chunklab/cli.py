@@ -46,6 +46,17 @@ def _one_line_errors(command):
     return wrapper
 
 
+def _load_documents(docs: Path):
+    """Load the corpus, saying in one line what a folder scan left out."""
+    from chunklab.loaders.registry import describe_skipped, load_documents
+
+    skipped: list[Path] = []
+    documents = load_documents(docs, skipped=skipped)
+    if skipped:
+        console.print(f"[dim]Note: {escape(describe_skipped(skipped, docs))}[/dim]")
+    return documents
+
+
 def _version_callback(value: bool) -> None:
     if value:
         typer.echo(f"chunklab {chunklab.__version__}")
@@ -133,11 +144,10 @@ def validate(
     Exits non-zero when errors are found, so it can gate CI.
     """
     from chunklab.config import load_config, load_questions
-    from chunklab.loaders.registry import load_documents
     from chunklab.validation import validate_questions
 
     cfg = load_config(config)
-    documents = load_documents(docs)
+    documents = _load_documents(docs)
     qs = load_questions(questions)
     report = validate_questions(qs, documents, fuzzy_threshold=cfg.eval.fuzzy_threshold)
 
@@ -280,9 +290,8 @@ def find_evidence_command(
     """
     from chunklab.config import load_questions
     from chunklab.evidence import find_evidence
-    from chunklab.loaders.registry import load_documents
 
-    documents = load_documents(docs)
+    documents = _load_documents(docs)
     question_set = load_questions(questions)
     results = find_evidence(question_set, documents, max_candidates=candidates, context=context)
 
@@ -367,7 +376,6 @@ def bootstrap(
     every question is marked `reviewed: false` until you have checked it.
     """
     from chunklab.eval.qa_gen import dump_questions_yaml, generate_questions
-    from chunklab.loaders.registry import load_documents
 
     if backend != "heuristic":
         console.print(
@@ -376,7 +384,7 @@ def bootstrap(
         )
         raise typer.Exit(2)
 
-    documents = load_documents(docs)
+    documents = _load_documents(docs)
     questions = generate_questions(documents, n=n)
     if not questions:
         console.print(

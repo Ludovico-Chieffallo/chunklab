@@ -634,8 +634,11 @@ def evaluate(
     a YAML path or a list of Questions; `config` is a Config, a YAML path, or
     None for defaults.
     """
+    skipped: list[Path] = []
+    docs_root = None
     if not isinstance(docs, list):
-        docs = load_documents(docs)
+        docs_root = docs
+        docs = load_documents(docs_root, skipped=skipped)
     if not isinstance(questions, list):
         questions = load_questions(questions)
     if config is None:
@@ -644,4 +647,9 @@ def evaluate(
         from chunklab.config import load_config
 
         config = load_config(config)
-    return run_evaluation(docs, questions, config, on_progress=on_progress)
+    report = run_evaluation(docs, questions, config, on_progress=on_progress)
+    if skipped:
+        from chunklab.loaders.registry import describe_skipped
+
+        report.warnings.insert(0, describe_skipped(skipped, docs_root))
+    return report
