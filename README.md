@@ -245,4 +245,6 @@ When `--docs` is a folder, hidden files and folders and the `~$…` lock files W
 
 ## License
 
-[MIT](LICENSE) — permissive on purpose. Runs locally, no telemetry, no phone-home.
+chunklab's own code is [MIT](LICENSE) — permissive on purpose. Runs locally, no telemetry, no phone-home.
+
+**One dependency is not permissive.** PDF support goes through [PyMuPDF](https://pymupdf.readthedocs.io/) via `pymupdf4llm`, which is licensed under the GNU AGPL v3 or a commercial licence from Artifex, and `pip install chunklab` installs it today. If your organisation restricts AGPL software, check that policy before adopting chunklab.

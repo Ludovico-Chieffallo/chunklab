@@ -50,6 +50,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cell-question outcomes were displayed wrong. Rows and drill-down now name the
   retriever, and chunk diagnostics, identical under every retriever, appear once per
   strategy.
+- **The README says that one dependency is AGPL.** chunklab's own code is MIT and the
+  README called the install "permissive on purpose", while `pip install chunklab`
+  also installs PyMuPDF (via `pymupdf4llm`), licensed under the GNU AGPL v3 or a
+  commercial licence. The License section now names it; a test keeps that true for as
+  long as an AGPL distribution is declared, required or optional.
 
 ## [0.4.0] - 2026-09-19
 
