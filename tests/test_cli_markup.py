@@ -169,7 +169,6 @@ def test_demo_install_hint_names_the_extra(cli, monkeypatch):
     """rich ate `[demo]` and told people to `pip install 'chunklab'`, which they
     already had — a loop with no way out."""
     monkeypatch.setitem(sys.modules, "gradio", None)
-    monkeypatch.setitem(sys.modules, "app.app", None)
 
     result = cli("demo")
 

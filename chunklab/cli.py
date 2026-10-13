@@ -335,13 +335,17 @@ def strategies() -> None:
 @_one_line_errors
 def demo() -> None:
     """Launch the local Gradio demo app."""
-    try:
-        from app.app import build_app
-    except ImportError:
+    import importlib.util
+
+    # Checked up front: gradio is imported inside build_app(), so a missing extra
+    # used to escape as a traceback instead of reaching this hint.
+    if importlib.util.find_spec("gradio") is None:
         console.print(
             "[red]The demo requires gradio:[/red] " + escape("pip install 'chunklab[demo]'")
         )
-        raise typer.Exit(1) from None
+        raise typer.Exit(1)
+    from chunklab.demo import build_app
+
     build_app().launch()
 
 
