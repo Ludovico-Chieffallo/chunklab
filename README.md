@@ -128,7 +128,7 @@ Tips:
 chunklab bootstrap --docs ./docs --out questions.draft.yaml -n 20
 ```
 
-Drafts a question set locally (no API key): gold snippets are verbatim sentences that state a fact, queries are mechanical drafts marked `reviewed: false`. Rewrite the queries in your users' words before trusting the results — `chunklab run` keeps warning until you do.
+Drafts a question set locally (no API key): gold snippets are verbatim sentences that state a fact, queries are mechanical drafts marked `reviewed: false`. Rewrite the queries in your users' words before trusting the results — `chunklab run` keeps warning until you do. It never overwrites an existing file unless you pass `--force`, so re-running it cannot throw away the edits you made to the draft.
 
 ### You wrote the questions — now find the evidence
 
