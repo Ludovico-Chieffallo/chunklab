@@ -43,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an up-arrow in the shell - silently replaced the file the user had spent time
   editing. It now refuses when `--out` exists, before reading any document, and
   `--force` overwrites on purpose.
+- **The HTML report shows a strategy x retriever run as one.** With
+  `--compare-retrievers` the table listed each strategy three times with no
+  retriever, and the drill-down was keyed by strategy alone, so each question showed
+  the last retriever's outcome for all three: on the 26-paper CRISPR run, 106 of 675
+  cell-question outcomes were displayed wrong. Rows and drill-down now name the
+  retriever, and chunk diagnostics, identical under every retriever, appear once per
+  strategy.
 
 ## [0.4.0] - 2026-09-19
 
