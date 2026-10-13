@@ -31,20 +31,56 @@ def get_loader(extension: str) -> DocumentLoader:
     )
 
 
-def load_documents(docs_path: str | Path) -> list[Document]:
-    """Load a single file or every supported file in a directory (recursive)."""
+def _not_meant_for_evaluation(path: Path, root: Path) -> bool:
+    """Hidden files and folders, and the lock files office suites write beside
+    an open document (Word's `~$name.docx`; LibreOffice's `.~lock.name#` is
+    hidden already).
+
+    A folder containing one used to fail the whole run with a parser error for a
+    file the user cannot see and never chose.
+    """
+    relative = path.relative_to(root)
+    return path.name.startswith("~$") or any(part.startswith(".") for part in relative.parts)
+
+
+def describe_skipped(skipped: list[Path], root: str | Path) -> str:
+    """One line naming what a directory scan left out, worst-case truncated."""
+    root = Path(root)
+    names = [str(p.relative_to(root)) if p.is_relative_to(root) else str(p) for p in skipped]
+    shown = ", ".join(names[:3]) + (", …" if len(names) > 3 else "")
+    return (
+        f"skipped {len(names)} hidden or lock file(s) under {root} ({shown}); "
+        "pass a file to --docs directly to include it."
+    )
+
+
+def load_documents(docs_path: str | Path, skipped: list[Path] | None = None) -> list[Document]:
+    """Load a single file or every supported file in a directory (recursive).
+
+    A directory scan leaves out hidden files and folders and office lock files,
+    and appends each one to `skipped` when a list is given, so the caller can say
+    so. A file named explicitly is always loaded.
+    """
     path = Path(docs_path)
+    left_out: list[Path] = []
     if path.is_file():
         files = [path]
     elif path.is_dir():
-        files = sorted(
-            p for p in path.rglob("*") if p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
-        )
+        files = []
+        for candidate in sorted(path.rglob("*")):
+            if not candidate.is_file() or candidate.suffix.lower() not in SUPPORTED_EXTENSIONS:
+                continue
+            (left_out if _not_meant_for_evaluation(candidate, path) else files).append(candidate)
+        if skipped is not None:
+            skipped.extend(left_out)
     else:
         raise InputNotFoundError(f"docs path not found: {path}")
     if not files:
         supported = ", ".join(sorted(SUPPORTED_EXTENSIONS))
-        raise InputError(f"no supported documents found under {path} (supported: {supported})")
+        detail = f"; {describe_skipped(left_out, path)}" if left_out else ""
+        raise InputError(
+            f"no supported documents found under {path} (supported: {supported}){detail}"
+        )
 
     documents: list[Document] = []
     for file in files:

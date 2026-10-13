@@ -241,6 +241,8 @@ Upload a document, type a few questions with gold snippets, pick strategies, and
 
 Documents: **PDF, DOCX, TXT, MD**. Corpora of tens to low-hundreds of documents (this is a pre-flight tool, not a batch pipeline).
 
+When `--docs` is a folder, hidden files and folders and the `~$…` lock files Word leaves next to an open document are skipped, and listed in a warning; pass a file to `--docs` directly to include it.
+
 ## License
 
 [MIT](LICENSE) — permissive on purpose. Runs locally, no telemetry, no phone-home.

@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `chunklab.demo`; `app/app.py` stays as the Hugging Face Space entrypoint. A missing
   gradio is now reported with the extra to install, where it used to escape as a
   traceback from inside the app.
+- **A Word lock file no longer stops the run.** Word writes `~$name.docx` beside every
+  open document, and a folder containing one failed with a parser error for a file
+  the user cannot see and never chose. Scanning a folder now skips those and hidden
+  files and folders (`.git/`, LibreOffice's `.~lock…#`), and says which in a warning;
+  a file passed to `--docs` directly is always loaded.
 
 ## [0.4.0] - 2026-09-19
 
