@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-13
+
+Everything below came out of installing 0.4.0 from PyPI into a clean virtualenv and
+using it the way a new user would. Chunking, retrieval and the metrics are untouched
+and the report schema stays 1.4. The one way a result can move is the corpus itself:
+a folder scan no longer picks up hidden files or office lock files.
+
 ### Fixed
 - **Document text is printed as text, never as markup.** rich reads `[word]` as a
   style tag and `[/word]` as the end of one, and the CLI pasted document text, gold
