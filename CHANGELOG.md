@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   restores it for input errors.
 - **Tracebacks never print local variables**, which hold document text. Typer 0.12,
   inside the supported range, showed them by default.
+- **`chunklab demo` works from an installed package.** The demo lived in `app/app.py`
+  at the repository root and the wheel ships only `chunklab/`, so on a PyPI install
+  the command could never import it and blamed a missing gradio instead. It is now
+  `chunklab.demo`; `app/app.py` stays as the Hugging Face Space entrypoint. A missing
+  gradio is now reported with the extra to install, where it used to escape as a
+  traceback from inside the app.
 
 ## [0.4.0] - 2026-09-19
 

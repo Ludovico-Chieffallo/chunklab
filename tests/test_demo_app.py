@@ -5,14 +5,11 @@ interface and run a real evaluation through it, so `chunklab demo` cannot rot
 into a command that fails the moment someone clicks the button.
 """
 
-import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
-
-from app import EXAMPLE_QUESTIONS, TABLE_HEADERS, parse_questions, run_eval  # noqa: E402
+from chunklab.demo import EXAMPLE_QUESTIONS, TABLE_HEADERS, parse_questions, run_eval
 
 HANDBOOK = Path(__file__).parent / "data" / "employee_handbook.md"
 
@@ -80,7 +77,7 @@ def offline_embeddings(monkeypatch):
     not retrieval quality, so a deterministic stand-in keeps these fast enough to
     run on every commit instead of being skipped into irrelevance.
     """
-    import app as demo_module
+    import chunklab.demo as demo_module
     from chunklab.config import default_config as real_default_config
 
     def fake_backend_config():
@@ -139,6 +136,6 @@ def test_interface_builds():
     """Regression guard: gradio's API changes between majors, and this is the only
     place chunklab touches it."""
     pytest.importorskip("gradio")
-    from app import build_app
+    from chunklab.demo import build_app
 
     assert build_app() is not None

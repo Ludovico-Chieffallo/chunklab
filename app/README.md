@@ -13,7 +13,7 @@ short_description: Which chunking strategy retrieves your answers best?
 
 # ChunkLab — Hugging Face Space
 
-This Space runs the [chunklab](https://github.com/ludovicochieffallo/chunklab) demo.
+This Space runs the [chunklab](https://github.com/Ludovico-Chieffallo/chunklab) demo.
 
 Upload a document (PDF, DOCX, TXT, MD), enter a few questions with gold snippets
 (`question :: gold snippet`), pick which chunking strategies to compare, and see
