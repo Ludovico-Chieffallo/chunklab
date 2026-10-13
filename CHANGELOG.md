@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   install hint came out as `pip install 'chunklab'`.
 - **`run` writes its reports before printing to the console**, so nothing that goes
   wrong in the terminal can throw away a finished evaluation.
+- **Mistakes in the input are reported in one line, with exit code 2.** A mistyped
+  path printed 38 lines of traceback, a tab in the questions file 184. A missing file,
+  YAML that does not parse (now with line and column), a malformed question, an
+  unknown strategy or strategy parameter, and a missing or malformed `check` baseline
+  are each one `Error:` line. A misspelled strategy parameter is caught before
+  anything runs, and so is the not-yet-available `openai` backend; `check` reads its
+  baseline before evaluating. Bugs keep their traceback, and `CHUNKLAB_DEBUG=1`
+  restores it for input errors.
+- **Tracebacks never print local variables**, which hold document text. Typer 0.12,
+  inside the supported range, showed them by default.
 
 ## [0.4.0] - 2026-09-19
 

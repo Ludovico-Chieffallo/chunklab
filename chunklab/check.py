@@ -18,6 +18,9 @@ Pairing requires the same questions on both sides; the report records
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from pydantic import ValidationError
+
+from chunklab.errors import InputError, InputNotFoundError, describe_validation_error
 from chunklab.eval.significance import paired_bootstrap_diff_ci
 from chunklab.models import EvalReport, StrategyResult
 
@@ -48,11 +51,26 @@ def _per_question_recalls(result: StrategyResult) -> dict[str, float]:
 
 
 def load_baseline(path: str | Path) -> EvalReport:
-    report = EvalReport.model_validate_json(Path(path).read_text(encoding="utf-8"))
+    path = Path(path)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise InputNotFoundError(
+            f"baseline not found: {path}; record one with --update-baseline"
+        ) from None
+    try:
+        report = EvalReport.model_validate_json(text)
+    except ValidationError as exc:
+        raise InputError(
+            f"{path} is not a chunklab report: {describe_validation_error(exc)}"
+        ) from None
+    if not report.strategy_results:
+        # Every field of EvalReport has a default, so any JSON object parses.
+        raise InputError(f"{path} is not a chunklab report: it holds no strategy results")
     baseline_major = report.schema_version.split(".")[0]
     current_major = EvalReport().schema_version.split(".")[0]
     if baseline_major != current_major:
-        raise ValueError(
+        raise InputError(
             f"baseline uses schema {report.schema_version}, this chunklab writes "
             f"{EvalReport().schema_version}; regenerate the baseline with --update-baseline"
         )
@@ -67,7 +85,7 @@ def _select(report: EvalReport, strategy: str | None, retriever: str | None) -> 
         candidates = [r for r in candidates if r.retriever == retriever]
     if not candidates:
         wanted = f"{strategy or 'any'} + {retriever or 'any'}"
-        raise ValueError(f"no strategy matching '{wanted}' in the report")
+        raise InputError(f"no strategy matching '{wanted}' in the report")
     return candidates[0]
 
 

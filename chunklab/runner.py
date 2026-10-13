@@ -11,6 +11,7 @@ from chunklab.chunkers.registry import make_chunker
 from chunklab.config import Config, default_config, load_questions
 from chunklab.diagnostics.chunk_health import compute_chunk_health
 from chunklab.embeddings.registry import make_embedder
+from chunklab.errors import InputError
 from chunklab.eval import metrics as m
 from chunklab.eval.gold_match import score_question, variants
 from chunklab.eval.significance import bootstrap_mean_ci
@@ -384,9 +385,16 @@ def run_evaluation(
     report_progress = on_progress or (lambda _message: None)
     warnings: list[str] = []
 
+    # A typo in a strategy's params used to surface as a TypeError when that
+    # strategy's turn came, after the documents and the model had loaded.
+    from chunklab.chunkers.registry import check_strategy_params
+
+    for strategy in config.strategies:
+        check_strategy_params(strategy.name, strategy.params)
+
     empty = [d.id for d in documents if not d.text.strip()]
     if empty and len(empty) == len(documents):
-        raise ValueError(
+        raise InputError(
             "no document contains extractable text "
             f"({', '.join(empty[:5])}); scanned PDFs need OCR before they can be chunked"
         )
@@ -449,7 +457,7 @@ def run_evaluation(
             "add gold_snippets to include them in scoring."
         )
     if not scored_questions:
-        raise ValueError("no questions with gold snippets - nothing to score")
+        raise InputError("no questions with gold snippets - nothing to score")
 
     if len(scored_questions) < 15:
         warnings.append(

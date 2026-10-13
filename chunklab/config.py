@@ -4,8 +4,14 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from chunklab.errors import (
+    InputError,
+    InputNotFoundError,
+    describe_validation_error,
+    describe_yaml_error,
+)
 from chunklab.models import Question
 
 
@@ -18,6 +24,15 @@ class EmbeddingConfig(BaseModel):
     # Apply the query/passage instruction prefixes the model was trained with.
     # Mandatory for E5; set false only to reproduce a run made without them.
     prefixes: bool = True
+
+    @field_validator("backend")
+    @classmethod
+    def _implemented(cls, v: str) -> str:
+        # Part of the schema so a config written for it still parses, refused here
+        # so it fails with the config instead of after every document has loaded.
+        if v == "openai":
+            raise ValueError("'openai' is not available yet; use 'local'")
+        return v
 
 
 class RetrievalConfig(BaseModel):
@@ -99,12 +114,33 @@ def default_config() -> Config:
     return Config(strategies=default_strategies())
 
 
+def _read_yaml(path: str | Path, what: str):
+    """Parse a YAML file the user named, turning each way it can fail into an
+    InputError that says which file and where."""
+    path = Path(path)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise InputNotFoundError(f"{what} not found: {path}") from None
+    except UnicodeDecodeError:
+        raise InputError(f"{what} is not UTF-8 text: {path}") from None
+    except OSError as exc:
+        raise InputError(f"cannot read {what} {path}: {exc.strerror or exc}") from None
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise InputError(f"{path} is not valid YAML: {describe_yaml_error(exc)}") from None
+
+
 def load_config(path: str | Path | None) -> Config:
     """Load a Config from YAML; with no path, return the default config."""
     if path is None:
         return default_config()
-    data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
-    config = Config.model_validate(data)
+    data = _read_yaml(path, "config file") or {}
+    try:
+        config = Config.model_validate(data)
+    except ValidationError as exc:
+        raise InputError(f"{path}: {describe_validation_error(exc)}") from None
     if not config.strategies:
         config.strategies = default_strategies()
     return config
@@ -112,8 +148,16 @@ def load_config(path: str | Path | None) -> Config:
 
 def load_questions(path: str | Path) -> list[Question]:
     """Load questions from a YAML file with a top-level `questions:` list."""
-    data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
-    raw = data.get("questions")
+    data = _read_yaml(path, "questions file")
+    raw = data.get("questions") if isinstance(data, dict) else None
     if not isinstance(raw, list) or not raw:
-        raise ValueError(f"{path}: expected a top-level 'questions:' list")
-    return [Question.model_validate(q) for q in raw]
+        raise InputError(f"{path}: expected a top-level 'questions:' list")
+    questions = []
+    for number, item in enumerate(raw, 1):
+        try:
+            questions.append(Question.model_validate(item))
+        except ValidationError as exc:
+            ident = item.get("id") if isinstance(item, dict) else None
+            label = f"question {number}" + (f" ({ident})" if ident else "")
+            raise InputError(f"{path}: {label}: {describe_validation_error(exc)}") from None
+    return questions

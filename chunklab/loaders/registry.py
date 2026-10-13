@@ -2,8 +2,12 @@
 
 from pathlib import Path
 
+from chunklab.errors import DocumentLoadError, InputError, InputNotFoundError
 from chunklab.loaders.base import DocumentLoader
 from chunklab.models import Document
+
+# DocumentLoadError moved to chunklab.errors; importing it from here still works.
+__all__ = ["DocumentLoadError", "SUPPORTED_EXTENSIONS", "get_loader", "load_documents"]
 
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
 
@@ -27,10 +31,6 @@ def get_loader(extension: str) -> DocumentLoader:
     )
 
 
-class DocumentLoadError(RuntimeError):
-    """A file could not be read, with the file named."""
-
-
 def load_documents(docs_path: str | Path) -> list[Document]:
     """Load a single file or every supported file in a directory (recursive)."""
     path = Path(docs_path)
@@ -41,9 +41,10 @@ def load_documents(docs_path: str | Path) -> list[Document]:
             p for p in path.rglob("*") if p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
         )
     else:
-        raise FileNotFoundError(f"docs path not found: {path}")
+        raise InputNotFoundError(f"docs path not found: {path}")
     if not files:
-        raise ValueError(f"no supported documents found under {path}")
+        supported = ", ".join(sorted(SUPPORTED_EXTENSIONS))
+        raise InputError(f"no supported documents found under {path} (supported: {supported})")
 
     documents: list[Document] = []
     for file in files:

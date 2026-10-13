@@ -18,6 +18,9 @@ chunklab check --docs ./docs --questions questions.yaml \
 ```
 
 Exit code `1` means a regression; commit `chunklab-baseline.json` alongside your corpus.
+Exit code `2` means the input could not be used at all — a missing baseline, a path that
+does not exist, a questions file that is not valid YAML — and the one-line message says
+which.
 
 ## What makes a build fail
 

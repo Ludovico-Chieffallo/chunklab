@@ -34,6 +34,9 @@ pip install -e ".[dev]"
 Include: chunklab version, Python version, OS, the exact command, and — when the issue
 is about scoring — the smallest document + question pair that reproduces it.
 
+Problems with the input (a missing file, invalid YAML, an unknown strategy parameter)
+are printed as one line. Run with `CHUNKLAB_DEBUG=1` to get the full traceback instead.
+
 ## Branch protection
 
 `main` requires a pull request and green CI (`test (3.11)`, `test (3.12)`) before merging,
