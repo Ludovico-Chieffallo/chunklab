@@ -21,6 +21,36 @@ def fake_embedder():
     return FakeEmbedder()
 
 
+@pytest.fixture()
+def cli(monkeypatch):
+    """Invoke the real `chunklab` CLI in-process and return the click Result.
+
+    The module-level console is swapped for one wide enough not to wrap, so a
+    test can assert on a whole line; it still writes to whatever stdout the
+    runner installed, which is what the user would have seen.
+    """
+    from rich.console import Console
+    from typer.testing import CliRunner
+
+    import chunklab.cli as cli_module
+
+    monkeypatch.setattr(cli_module, "console", Console(width=200))
+    runner = CliRunner()
+
+    def invoke(*args: str):
+        return runner.invoke(cli_module.app, [str(arg) for arg in args])
+
+    return invoke
+
+
+@pytest.fixture()
+def fake_config(tmp_path) -> Path:
+    """A config that runs every strategy on the deterministic offline embedder."""
+    path = tmp_path / "fake.yaml"
+    path.write_text("embedding:\n  backend: fake\n", encoding="utf-8")
+    return path
+
+
 class CountingEmbedder:
     """FakeEmbedder that records what it was actually asked to compute.
 

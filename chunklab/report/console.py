@@ -1,6 +1,7 @@
 """Console report: ranked table + recommendation (spec §5.4)."""
 
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from chunklab.models import ChunkHealth, EvalReport
@@ -38,7 +39,7 @@ def _print_chunk_health(report: EvalReport, console: Console) -> None:
     for name in _CHUNK_HEALTH_COLUMNS:
         table.add_column(name, justify="right")
     for strategy, health in by_strategy.items():
-        table.add_row(f"  {strategy}", *_chunk_health_cells(health))
+        table.add_row(f"  {escape(strategy)}", *_chunk_health_cells(health))
 
     console.print(
         "\n[bold]Chunk health[/bold] [dim]— per strategy; identical under every retriever[/dim]"
@@ -60,10 +61,13 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
         if with_text is None or with_text == loaded
         else f"{loaded} document(s) ({with_text} with extractable text)"
     )
+    # Names, paths and quoted gold snippets are data: escaped wherever they are
+    # interpolated, or rich parses `[/word]` in them as a closing style tag.
+    model = escape(str(cs.get("embedding_model", "?")))
     console.print(
         f"\n[bold]ChunkLab[/bold] — {documents}, "
         f"{cs.get('num_scored_questions', '?')} scored questions, top_k={k}, "
-        f"model={cs.get('embedding_model', '?')}\n"
+        f"model={model}\n"
     )
 
     ranking = cs.get("ranking_metric", "recall_at_k")
@@ -86,9 +90,9 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
 
     for i, r in enumerate(report.strategy_results):
         style = "green" if i == 0 else None
-        row = [("▶ " if i == 0 else "  ") + r.strategy]
+        row = [("▶ " if i == 0 else "  ") + escape(r.strategy)]
         if show_retriever:
-            row.append(r.retriever)
+            row.append(escape(r.retriever))
         if ranking == "balanced":
             row.append(f"{r.balanced_score:.2f}")
         row += [
@@ -113,13 +117,15 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
     # Measured, not hedged: swapping the model changed the winner on one of the two
     # corpora tested. Ranking a strategy without naming the model is meaningless.
     console.print(
-        f"[dim]This ranking holds for {cs.get('embedding_model', 'this model')}. "
+        f"[dim]This ranking holds for {escape(str(cs.get('embedding_model', 'this model')))}. "
         "Strategy order changes with the embedding model — run with the one you deploy.[/dim]"
     )
 
     # A matrix report carries one block per axis, separated by a blank line; indent
     # each of them so the second does not hang off the left margin.
-    body = "\n".join(f"  {line}" if line else "" for line in report.recommendation.split("\n"))
+    body = "\n".join(
+        f"  {escape(line)}" if line else "" for line in report.recommendation.split("\n")
+    )
     console.print(f"\n[bold]Recommendation:[/bold]\n{body}")
     for w in report.warnings:
-        console.print(f"[yellow]Warning:[/yellow] {w}")
+        console.print(f"[yellow]Warning:[/yellow] {escape(w)}")
