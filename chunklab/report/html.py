@@ -29,7 +29,7 @@ _TEMPLATE = """<!doctype html>
   table { border-collapse:collapse; width:100%; font-size:.9rem; }
   th, td { text-align:right; padding:.45rem .7rem; border-bottom:1px solid var(--line);
            white-space:nowrap; }
-  th:first-child, td:first-child { text-align:left; }
+  th:first-child, td:first-child, th.left, td.left { text-align:left; }
   th { color:var(--muted); font-weight:600; }
   tr.winner { background:var(--win); font-weight:600; }
   .hist { display:flex; align-items:flex-end; gap:2px; height:56px; margin:.3rem 0 .1rem; }
@@ -69,12 +69,13 @@ questions · top_k={{ k }} · model={{ cs.embedding_model }} · generated
 <h2>Ranked comparison</h2>
 <div class="tablewrap">
 <table>
-<tr><th>Strategy</th><th>recall@{{ k }}</th><th>hit@{{ k }}</th><th>MRR</th>
+<tr><th>Strategy</th>{% if matrix %}<th class="left">Retriever</th>{% endif %}<th>recall@{{ k }}</th><th>hit@{{ k }}</th><th>MRR</th>
 <th>prec@{{ k }}</th><th>#chunks</th><th>med tok</th><th>%tiny</th>
 <th>boundary</th><th>tables intact</th></tr>
 {% for r in report.strategy_results %}
 <tr {% if loop.first %}class="winner"{% endif %}>
 <td>{{ '▶ ' if loop.first }}{{ r.strategy }}</td>
+{% if matrix %}<td class="left">{{ r.retriever }}</td>{% endif %}
 <td>{{ '%.2f'|format(r.recall_at_k) }}</td>
 <td>{{ '%.2f'|format(r.hit_rate_at_k) }}</td>
 <td>{{ '%.2f'|format(r.mrr) }}</td>
@@ -90,20 +91,21 @@ questions · top_k={{ k }} · model={{ cs.embedding_model }} · generated
 </div>
 
 <h2>Per-strategy diagnostics</h2>
-{% for r in report.strategy_results %}
+{% if matrix %}<p class="lgnd">These depend on the chunks alone, so they are the same under every retriever.</p>{% endif %}
+{% for strategy, health in health_by_strategy.items() %}
 <details {% if loop.first %}open{% endif %}>
-<summary>{{ r.strategy }} — token size distribution</summary>
-{% set maxcount = r.chunk_health.token_histogram | map(attribute=1) | max %}
+<summary>{{ strategy }} — token size distribution</summary>
+{% set maxcount = health.token_histogram | map(attribute=1) | max %}
 <div class="hist">
-{% for bucket, count in r.chunk_health.token_histogram %}
+{% for bucket, count in health.token_histogram %}
 <div style="height:{{ (count / maxcount * 100) | round }}%"
      title="{{ bucket }}–{{ bucket + 99 }} tok: {{ count }} chunks"></div>
 {% endfor %}
 </div>
-<p class="histlbl">{{ r.chunk_health.tokens_min }}–{{ r.chunk_health.tokens_max }} tokens
-(median {{ '%.0f'|format(r.chunk_health.tokens_median) }}) ·
-{{ '%.0f%%'|format(r.chunk_health.pct_tiny * 100) }} tiny ·
-{{ '%.0f%%'|format(r.chunk_health.pct_oversized * 100) }} oversized</p>
+<p class="histlbl">{{ health.tokens_min }}–{{ health.tokens_max }} tokens
+(median {{ '%.0f'|format(health.tokens_median) }}) ·
+{{ '%.0f%%'|format(health.pct_tiny * 100) }} tiny ·
+{{ '%.0f%%'|format(health.pct_oversized * 100) }} oversized</p>
 </details>
 {% endfor %}
 
@@ -111,12 +113,12 @@ questions · top_k={{ k }} · model={{ cs.embedding_model }} · generated
 {% for qid in question_ids %}
 <details>
 <summary>{{ qid }} — {{ queries[qid] }}
-{% for r in report.strategy_results %}{% set qr = per_q[r.strategy][qid] %}
+{% for cell in cells %}{% set qr = per_q[cell.key][qid] %}
 <span class="chip {{ 'hit' if qr.hit else ('split' if qr.split_across_chunks else 'miss') }}">
-{{ r.strategy }}{{ ' #%d'|format(qr.first_hit_rank) if qr.first_hit_rank else '' }}</span>
+{{ cell.label }}{{ ' #%d'|format(qr.first_hit_rank) if qr.first_hit_rank else '' }}</span>
 {% endfor %}</summary>
-{% for r in report.strategy_results %}{% set qr = per_q[r.strategy][qid] %}
-<p><strong>{{ r.strategy }}</strong> —
+{% for cell in cells %}{% set qr = per_q[cell.key][qid] %}
+<p><strong>{{ cell.label }}</strong> —
 {% if qr.hit %}hit at rank {{ qr.first_hit_rank }}
 ({{ qr.gold_found_count }}/{{ qr.gold_total }} gold found){% elif qr.split_across_chunks %}
 answer <strong>split across two adjacent chunks</strong>{% else %}not retrieved in
@@ -162,13 +164,25 @@ def write_html_report(report: EvalReport, path: str | Path) -> Path:
     env = Environment(loader=BaseLoader(), autoescape=True)
     template = env.from_string(_TEMPLATE)
 
+    # With --compare-retrievers each strategy appears once per retriever, so a cell
+    # is (strategy, retriever). Keying by strategy alone let the last retriever's
+    # results overwrite the others' in the drill-down.
+    matrix = len({r.retriever for r in report.strategy_results}) > 1
+    cells = []
     question_ids: list[str] = []
     queries: dict[str, str] = {}
     per_q: dict[str, dict[str, object]] = {}
+    health_by_strategy: dict[str, object] = {}
     for r in report.strategy_results:
-        per_q[r.strategy] = {}
+        key = f"{r.strategy}|{r.retriever}"
+        cells.append(
+            {"key": key, "label": f"{r.strategy} · {r.retriever}" if matrix else r.strategy}
+        )
+        # Chunk health depends on the chunks alone: once per strategy, not per cell.
+        health_by_strategy.setdefault(r.strategy, r.chunk_health)
+        per_q[key] = {}
         for qr in r.per_question:
-            per_q[r.strategy][qr.question_id] = qr
+            per_q[key][qr.question_id] = qr
             if qr.question_id not in question_ids:
                 question_ids.append(qr.question_id)
 
@@ -183,6 +197,9 @@ def write_html_report(report: EvalReport, path: str | Path) -> Path:
         question_ids=question_ids,
         queries=queries,
         per_q=per_q,
+        matrix=matrix,
+        cells=cells,
+        health_by_strategy=health_by_strategy,
     )
     path = Path(path)
     path.write_text(html, encoding="utf-8")
