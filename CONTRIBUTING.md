@@ -37,6 +37,21 @@ is about scoring — the smallest document + question pair that reproduces it.
 Problems with the input (a missing file, invalid YAML, an unknown strategy parameter)
 are printed as one line. Run with `CHUNKLAB_DEBUG=1` to get the full traceback instead.
 
+## Releasing
+
+Bump the version in `pyproject.toml` and `chunklab/__init__.py`, move `[Unreleased]` in
+the CHANGELOG under the new number, merge that pull request, then push a `vX.Y.Z` tag on
+the merge commit. The `Release` workflow refuses a tag that does not match the version or
+is not on `main`, reruns the gate, builds the sdist and wheel, installs the wheel in a clean
+virtualenv and uses it from outside the repository, and only then publishes — after a
+manual approval in the `pypi` environment. The same smoke test runs on every pull request,
+and locally:
+
+```bash
+python -m build --wheel
+python scripts/smoke_test_wheel.py dist/*.whl --expect-version X.Y.Z
+```
+
 ## Branch protection
 
 `main` requires a pull request and green CI (`test (3.11)`, `test (3.12)`) before merging,

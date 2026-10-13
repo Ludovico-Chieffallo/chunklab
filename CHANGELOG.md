@@ -56,6 +56,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   commercial licence. The License section now names it; a test keeps that true for as
   long as an AGPL distribution is declared, required or optional.
 
+### Changed
+- **A release is verified on the artifact that will be published.** 0.4.0 passed its
+  whole suite and shipped a `chunklab demo` that could not start, because every test
+  ran from the checkout and nothing looked inside the wheel. The release workflow now
+  refuses a tag that does not match the package version or is not on `main`, reruns
+  the gate on the tagged commit, and installs the built wheel into a clean
+  virtualenv and uses it from outside the repository before anything is uploaded.
+  The same smoke test runs on every pull request.
+
 ## [0.4.0] - 2026-09-19
 
 ### Fixed
