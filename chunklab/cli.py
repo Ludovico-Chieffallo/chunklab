@@ -4,10 +4,17 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 
 import chunklab
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
+
+# Every message below that carries text chunklab did not write itself - document
+# text, gold snippets, queries, file paths, model and strategy names - passes it
+# through `escape`. rich reads `[word]` as a style tag and `[/word]` as the end of
+# one, so unescaped, a corpus holding the Llama 2 prompt format `[INST] ... [/INST]`
+# crashed `find-evidence` and crashed `run` after the evaluation had finished.
 console = Console()
 
 
@@ -62,20 +69,27 @@ def run(
             docs=docs,
             questions=questions,
             config=cfg,
-            on_progress=status.update,
+            on_progress=lambda message: status.update(escape(message)),
         )
 
     out_dir = Path(cfg.output.dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Files first: they are the result of the run, and the console is only a view
+    # of them. Printing first meant that anything going wrong in the terminal threw
+    # away an evaluation that had already finished.
+    written: list[tuple[str, Path]] = []
+    if "html" in cfg.output.formats:
+        written.append(("HTML report", write_html_report(report, out_dir / "report.html")))
+    if "json" in cfg.output.formats:
+        written.append(("JSON report", write_json_report(report, out_dir / "report.json")))
+
     if "console" in cfg.output.formats:
         print_report(report, console)
-    if "html" in cfg.output.formats:
-        html_path = write_html_report(report, out_dir / "report.html")
-        console.print(f"\nHTML report: [bold]{html_path}[/bold]")
-    if "json" in cfg.output.formats:
-        json_path = write_json_report(report, out_dir / "report.json")
-        console.print(f"JSON report: [bold]{json_path}[/bold]")
+    if written:
+        console.print()
+    for label, path in written:
+        console.print(f"{label}: [bold]{escape(str(path))}[/bold]")
 
 
 @app.command()
@@ -99,10 +113,15 @@ def validate(
 
     for issue in report.issues:
         tag = "[red]ERROR[/red]" if issue.severity == "error" else "[yellow]WARN [/yellow]"
-        console.print(f"{tag} [bold]{issue.question_id}[/bold] ({issue.kind}): {issue.message}")
+        console.print(
+            f"{tag} [bold]{escape(issue.question_id)}[/bold] ({issue.kind}): "
+            f"{escape(issue.message)}"
+        )
         if issue.suggestion:
-            console.print(f"      found at [dim]{issue.location}[/dim], verbatim source text:")
-            console.print(f"      [green]{issue.suggestion!r}[/green]")
+            console.print(
+                f"      found at [dim]{escape(str(issue.location))}[/dim], verbatim source text:"
+            )
+            console.print(f"      [green]{escape(repr(issue.suggestion))}[/green]")
 
     console.print(
         f"\n{report.num_questions} questions, {report.num_scored} scored, "
@@ -143,30 +162,35 @@ def check(
 
     cfg = load_config(config)
     with console.status("Running evaluation...") as status:
-        report = evaluate(docs=docs, questions=questions, config=cfg, on_progress=status.update)
+        report = evaluate(
+            docs=docs,
+            questions=questions,
+            config=cfg,
+            on_progress=lambda message: status.update(escape(message)),
+        )
 
     if update_baseline:
         write_json_report(report, baseline)
-        console.print(f"Baseline written to [bold]{baseline}[/bold].")
+        console.print(f"Baseline written to [bold]{escape(str(baseline))}[/bold].")
         return
 
     outcome = compare(load_baseline(baseline), report, strategy=strategy, max_drop=max_drop)
 
     console.print(
-        f"\n[bold]{outcome.strategy} + {outcome.retriever}[/bold]: "
+        f"\n[bold]{escape(outcome.strategy)} + {escape(outcome.retriever)}[/bold]: "
         f"recall {outcome.baseline_recall:.3f} → {outcome.current_recall:.3f} "
         f"({outcome.difference:+.3f})"
     )
     if outcome.ci95:
         console.print(f"paired 95% CI [{outcome.ci95[0]:+.3f}, {outcome.ci95[1]:+.3f}]")
     for note in outcome.notes:
-        console.print(f"[yellow]Note:[/yellow] {note}")
+        console.print(f"[yellow]Note:[/yellow] {escape(note)}")
 
     if outcome.ok:
         console.print("[green]No regression detected.[/green]")
         return
     for failure in outcome.failures:
-        console.print(f"[red]FAIL[/red] {failure}")
+        console.print(f"[red]FAIL[/red] {escape(failure)}")
     raise typer.Exit(1)
 
 
@@ -177,7 +201,7 @@ def cache(
     """Show where cached embeddings live and how much space they use."""
     from chunklab.embeddings.cache import cache_stats, clear_cache, default_cache_path
 
-    path = default_cache_path()
+    path = escape(str(default_cache_path()))
     if clear:
         removed = clear_cache()
         console.print(
@@ -233,18 +257,20 @@ def find_evidence_command(
 
     unanchored = 0
     for evidence in results:
-        console.print(f"\n[bold]{evidence.question_id}[/bold] {evidence.query}")
+        console.print(f"\n[bold]{escape(evidence.question_id)}[/bold] {escape(evidence.query)}")
         if not evidence.anchored:
             unanchored += 1
             missing = ", ".join(evidence.absent[:6]) or "none distinctive enough"
-            console.print(f"  [yellow]no anchor[/yellow] — terms absent from the corpus: {missing}")
+            console.print(
+                f"  [yellow]no anchor[/yellow] — terms absent from the corpus: {escape(missing)}"
+            )
             continue
         anchors = ", ".join(f"{term} ({n} doc)" for term, n in evidence.anchors)
-        console.print(f"  [dim]anchors: {anchors}[/dim]")
+        console.print(f"  [dim]anchors: {escape(anchors)}[/dim]")
         for candidate in evidence.candidates:
             text = " ".join(candidate.text.split())
-            console.print(f"  [dim]{candidate.doc_id}:{candidate.offset}[/dim]")
-            console.print(f"    {text}")
+            console.print(f"  [dim]{escape(candidate.doc_id)}:{candidate.offset}[/dim]")
+            console.print(f"    {escape(text)}")
 
     console.print(
         f"\n{len(results)} question(s) without gold snippets, "
@@ -265,7 +291,7 @@ def strategies() -> None:
     table.add_column("Name", style="bold")
     table.add_column("Description")
     for name, desc in available_strategies().items():
-        table.add_row(name, desc)
+        table.add_row(escape(name), escape(desc))
     console.print(table)
 
 
@@ -275,7 +301,9 @@ def demo() -> None:
     try:
         from app.app import build_app
     except ImportError:
-        console.print("[red]The demo requires gradio:[/red] pip install 'chunklab[demo]'")
+        console.print(
+            "[red]The demo requires gradio:[/red] " + escape("pip install 'chunklab[demo]'")
+        )
         raise typer.Exit(1) from None
     build_app().launch()
 
@@ -301,7 +329,7 @@ def bootstrap(
 
     if backend != "heuristic":
         console.print(
-            f"[red]Unknown backend '{backend}'.[/red] Only the local heuristic backend "
+            f"[red]Unknown backend '{escape(backend)}'.[/red] Only the local heuristic backend "
             "exists today; an optional LLM backend is planned and will stay off by default."
         )
         raise typer.Exit(2)
@@ -323,8 +351,9 @@ def bootstrap(
             f"malformed questions. Add documents to draft more.[/dim]"
         )
     console.print(
-        f"Wrote [bold]{len(questions)}[/bold] draft questions to [bold]{out}[/bold].\n"
+        f"Wrote [bold]{len(questions)}[/bold] draft questions to [bold]{escape(str(out))}[/bold].\n"
         "[yellow]These are drafts.[/yellow] Rewrite each query in your users' words, "
         "delete the ones that are not worth asking, then set reviewed: true.\n"
-        f"Check your edits with: chunklab validate --docs {docs} --questions {out}"
+        f"Check your edits with: chunklab validate --docs {escape(str(docs))} "
+        f"--questions {escape(str(out))}"
     )

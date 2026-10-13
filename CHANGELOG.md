@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Document text is printed as text, never as markup.** rich reads `[word]` as a
+  style tag and `[/word]` as the end of one, and the CLI pasted document text, gold
+  snippets, queries and paths straight into its messages. A corpus holding the
+  Llama 2 prompt format, `[INST] ... [/INST]`, crashed `find-evidence`, crashed
+  `validate` on the suggestion for a drifted snippet, and crashed `run` after the
+  evaluation had finished, before any report was written. The quieter cases printed
+  the wrong thing: a path with `[draft]` in it lost those characters, and the demo's
+  install hint came out as `pip install 'chunklab'`.
+- **`run` writes its reports before printing to the console**, so nothing that goes
+  wrong in the terminal can throw away a finished evaluation.
+
 ## [0.4.0] - 2026-09-19
 
 ### Fixed
