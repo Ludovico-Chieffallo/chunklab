@@ -1,5 +1,7 @@
 """Typer CLI for chunklab."""
 
+import functools
+import os
 from pathlib import Path
 
 import typer
@@ -7,8 +9,11 @@ from rich.console import Console
 from rich.markup import escape
 
 import chunklab
+from chunklab.errors import DocumentLoadError, InputError
 
-app = typer.Typer(no_args_is_help=True, add_completion=False)
+# Locals off explicitly: Typer 0.12, inside our supported range, prints every
+# local variable of a crashed command, and those hold document text.
+app = typer.Typer(no_args_is_help=True, add_completion=False, pretty_exceptions_show_locals=False)
 
 # Every message below that carries text chunklab did not write itself - document
 # text, gold snippets, queries, file paths, model and strategy names - passes it
@@ -16,6 +21,29 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
 # one, so unescaped, a corpus holding the Llama 2 prompt format `[INST] ... [/INST]`
 # crashed `find-evidence` and crashed `run` after the evaluation had finished.
 console = Console()
+
+
+def _one_line_errors(command):
+    """Report a problem with the user's input as one line, exit code 2.
+
+    Measured on 0.4.0: a mistyped path printed 38 lines of traceback, a tab in
+    the questions file 184. Only input errors are shortened - a bug keeps its
+    traceback, which is then the bug report - and CHUNKLAB_DEBUG=1 restores it
+    for input errors as well.
+    """
+
+    @functools.wraps(command)
+    def wrapper(*args, **kwargs):
+        try:
+            return command(*args, **kwargs)
+        except (InputError, DocumentLoadError) as exc:
+            if os.environ.get("CHUNKLAB_DEBUG", "").strip().lower() not in {"", "0", "false"}:
+                raise
+            # soft_wrap: the terminal wraps it, so a long path stays copyable.
+            console.print(f"[red]Error:[/red] {escape(str(exc))}", soft_wrap=True)
+            raise typer.Exit(2) from None
+
+    return wrapper
 
 
 def _version_callback(value: bool) -> None:
@@ -34,6 +62,7 @@ def main(
 
 
 @app.command()
+@_one_line_errors
 def run(
     docs: Path = typer.Option(..., "--docs", help="Document file or directory."),
     questions: Path = typer.Option(..., "--questions", help="questions.yaml path."),
@@ -93,6 +122,7 @@ def run(
 
 
 @app.command()
+@_one_line_errors
 def validate(
     docs: Path = typer.Option(..., "--docs", help="Document file or directory."),
     questions: Path = typer.Option(..., "--questions", help="questions.yaml path."),
@@ -135,6 +165,7 @@ def validate(
 
 
 @app.command()
+@_one_line_errors
 def check(
     docs: Path = typer.Option(..., "--docs", help="Document file or directory."),
     questions: Path = typer.Option(..., "--questions", help="questions.yaml path."),
@@ -161,6 +192,8 @@ def check(
     from chunklab.runner import evaluate
 
     cfg = load_config(config)
+    # Read the baseline first: finding out it is missing used to cost a whole run.
+    reference = None if update_baseline else load_baseline(baseline)
     with console.status("Running evaluation...") as status:
         report = evaluate(
             docs=docs,
@@ -174,7 +207,7 @@ def check(
         console.print(f"Baseline written to [bold]{escape(str(baseline))}[/bold].")
         return
 
-    outcome = compare(load_baseline(baseline), report, strategy=strategy, max_drop=max_drop)
+    outcome = compare(reference, report, strategy=strategy, max_drop=max_drop)
 
     console.print(
         f"\n[bold]{escape(outcome.strategy)} + {escape(outcome.retriever)}[/bold]: "
@@ -195,6 +228,7 @@ def check(
 
 
 @app.command()
+@_one_line_errors
 def cache(
     clear: bool = typer.Option(False, "--clear", help="Delete the embedding cache."),
 ) -> None:
@@ -225,6 +259,7 @@ def cache(
 
 
 @app.command("find-evidence")
+@_one_line_errors
 def find_evidence_command(
     docs: Path = typer.Option(..., "--docs", help="Document file or directory."),
     questions: Path = typer.Option(..., "--questions", help="questions.yaml path."),
@@ -281,6 +316,7 @@ def find_evidence_command(
 
 
 @app.command()
+@_one_line_errors
 def strategies() -> None:
     """List available chunking strategies and their default parameters."""
     from rich.table import Table
@@ -296,6 +332,7 @@ def strategies() -> None:
 
 
 @app.command()
+@_one_line_errors
 def demo() -> None:
     """Launch the local Gradio demo app."""
     try:
@@ -309,6 +346,7 @@ def demo() -> None:
 
 
 @app.command()
+@_one_line_errors
 def bootstrap(
     docs: Path = typer.Option(..., "--docs", help="Document file or directory."),
     out: Path = typer.Option(
