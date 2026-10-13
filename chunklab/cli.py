@@ -369,6 +369,7 @@ def bootstrap(
     backend: str = typer.Option(
         "heuristic", "--backend", help="heuristic (default, fully local) | llm (not yet available)"
     ),
+    force: bool = typer.Option(False, "--force", help="Overwrite --out if it already exists."),
 ) -> None:
     """Draft a question set from your documents, to edit rather than start from scratch.
 
@@ -383,6 +384,13 @@ def bootstrap(
             "exists today; an optional LLM backend is planned and will stay off by default."
         )
         raise typer.Exit(2)
+
+    # The draft is what people then spend an afternoon editing. Re-running the
+    # command - another -n, an up-arrow in the shell - replaced it silently.
+    if out.exists() and not force:
+        raise InputError(
+            f"{out} already exists; pass --force to overwrite it, or choose another --out"
+        )
 
     documents = _load_documents(docs)
     questions = generate_questions(documents, n=n)

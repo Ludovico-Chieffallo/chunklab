@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the user cannot see and never chose. Scanning a folder now skips those and hidden
   files and folders (`.git/`, LibreOffice's `.~lock…#`), and says which in a warning;
   a file passed to `--docs` directly is always loaded.
+- **`bootstrap` no longer overwrites an edited draft.** Re-running it - another `-n`,
+  an up-arrow in the shell - silently replaced the file the user had spent time
+  editing. It now refuses when `--out` exists, before reading any document, and
+  `--force` overwrites on purpose.
 
 ## [0.4.0] - 2026-09-19
 
