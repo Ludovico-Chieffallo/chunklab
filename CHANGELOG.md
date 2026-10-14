@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The quickstart installs the `pdf` extra.** 0.5.0 moved PDF support into
+  `chunklab[pdf]`, and one of the bundled example's five documents is a PDF, so the
+  README's 60-second quickstart, run after `pip install chunklab`, stopped at its first
+  command with "reading PDFs needs the optional PDF extra". Every command that runs the
+  example now installs it, and a test keeps the pages in step with the corpus.
+
 ## [0.5.0] - 2026-10-14
 
 This release is about whether a score means what it says. A gold snippet was counted
