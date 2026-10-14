@@ -5,6 +5,7 @@ from pathlib import Path
 from jinja2 import BaseLoader, Environment
 
 from chunklab.models import EvalReport
+from chunklab.report.status import MARKS, row_status
 
 _TEMPLATE = """<!doctype html>
 <html lang="en">
@@ -32,6 +33,7 @@ _TEMPLATE = """<!doctype html>
   th:first-child, td:first-child, th.left, td.left { text-align:left; }
   th { color:var(--muted); font-weight:600; }
   tr.winner { background:var(--win); font-weight:600; }
+  tr.out { color:var(--muted); }
   .hist { display:flex; align-items:flex-end; gap:2px; height:56px; margin:.3rem 0 .1rem; }
   .hist div { background:var(--accent); min-width:8px; border-radius:2px 2px 0 0; }
   .histlbl { font-size:.72rem; color:var(--muted); }
@@ -73,8 +75,9 @@ questions · top_k={{ k }} · model={{ cs.embedding_model }} · generated
 <th>prec@{{ k }}</th><th>#chunks</th><th>med tok</th><th>%tiny</th>
 <th>boundary</th><th>tables intact</th></tr>
 {% for r in report.strategy_results %}
-<tr {% if loop.first %}class="winner"{% endif %}>
-<td>{{ '▶ ' if loop.first }}{{ r.strategy }}</td>
+{% set status = statuses[loop.index0] %}
+<tr {% if status == "winner" %}class="winner"{% elif status == "ruled out" %}class="out"{% endif %}>
+<td>{{ marks[status] }}{{ r.strategy }}</td>
 {% if matrix %}<td class="left">{{ r.retriever }}</td>{% endif %}
 <td>{{ '%.2f'|format(r.recall_at_k) }}</td>
 <td>{{ '%.2f'|format(r.hit_rate_at_k) }}</td>
@@ -200,6 +203,8 @@ def write_html_report(report: EvalReport, path: str | Path) -> Path:
         matrix=matrix,
         cells=cells,
         health_by_strategy=health_by_strategy,
+        statuses=[row_status(report, r) for r in report.strategy_results],
+        marks=MARKS,
     )
     path = Path(path)
     path.write_text(html, encoding="utf-8")

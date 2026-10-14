@@ -103,7 +103,7 @@ def test_every_matrix_row_names_its_retriever(tmp_path):
     assert len(rows) == len(MATRIX)
     for row, (strategy, retriever, _hit) in zip(rows, MATRIX, strict=True):
         cells = [
-            re.sub(r"<[^>]+>", "", cell).replace("▶", "").strip()
+            re.sub(r"<[^>]+>", "", cell).lstrip("✓✗ ").strip()
             for cell in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)
         ]
         assert cells[0] == strategy and cells[1] == retriever, row

@@ -81,15 +81,28 @@ def test_every_strategy_appears_with_its_numbers():
     assert "0.82" in text and "0.71" in text
 
 
-def test_the_winner_is_marked():
-    """The first row is the recommendation; without the marker the table is just data."""
-    text = render(_report([_result("recursive", 0.82), _result("fixed", 0.71)]))
+def test_the_winner_is_marked_when_the_verdict_names_one():
+    """The first row is not the recommendation unless the verdict says so: marking it
+    regardless put a winner's ▶ on runs whose verdict was "No single winner"."""
+    from chunklab.models import AxisVerdict, Verdict
+
+    report = _report([_result("recursive", 0.82), _result("fixed", 0.71)])
+    report.verdict = Verdict(
+        chunking=AxisVerdict(axis="chunking", decided=True, winner="recursive", leader="recursive")
+    )
+    text = render(report)
 
     winner_line = next(line for line in text.splitlines() if "recursive" in line)
-    assert "▶" in winner_line
+    assert "✓" in winner_line
 
     runner_up = next(line for line in text.splitlines() if "fixed" in line)
-    assert "▶" not in runner_up
+    assert "✓" not in runner_up
+
+
+def test_without_a_verdict_no_row_is_marked():
+    text = render(_report([_result("recursive", 0.82), _result("fixed", 0.71)]))
+
+    assert "✓" not in text and "▶" not in text
 
 
 def test_recommendation_and_warnings_are_printed():

@@ -61,14 +61,14 @@ ChunkLab — 5 document(s), 129 scored questions, top_k=5, model=BAAI/bge-small-
 
  Strategy      ┃ balanced ┃ recall@5 ┃  MRR ┃ prec@5 ┃ tok@5 ┃ #chunks ┃ med_tok ┃ %tiny ┃ boundary 
 ━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━
- ▶ recursive   │     0.82 │     0.82 │ 0.61 │   0.17 │  2228 │      62 │     458 │    5% │     100% 
+   recursive   │     0.82 │     0.82 │ 0.61 │   0.17 │  2228 │      62 │     458 │    5% │     100% 
    structure   │     0.81 │     0.81 │ 0.65 │   0.17 │  2128 │      71 │     346 │   25% │     100% 
    fixed       │     0.81 │     0.81 │ 0.62 │   0.19 │  2447 │      61 │     512 │    2% │       2% 
    semantic    │     0.72 │     0.73 │ 0.55 │   0.15 │  2862 │      49 │     593 │    0% │     100% 
-   semantic_n… │     0.70 │     0.71 │ 0.53 │   0.15 │  2648 │      62 │     402 │   24% │     100% 
-recall/MRR/prec: retrieval quality at k=5 · tok@5: mean tokens retrieved per question (context cost)
-· %tiny: chunks under the size floor · boundary: chunks not cut mid-sentence · full definitions: 
-docs/metrics.md
+ ✗ semantic_n… │     0.70 │     0.71 │ 0.53 │   0.15 │  2648 │      62 │     402 │   24% │     100% 
+✗ ruled out by the evidence · recall/MRR/prec: retrieval quality at k=5 · tok@5: mean tokens 
+retrieved per question (context cost) · %tiny: chunks under the size floor · boundary: chunks not 
+cut mid-sentence · full definitions: docs/metrics.md
 This ranking holds for BAAI/bge-small-en-v1.5. Strategy order changes with the embedding model — run
 with the one you deploy.
 
