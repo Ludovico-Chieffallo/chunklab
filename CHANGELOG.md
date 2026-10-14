@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Two files with the same name are two documents. Scores can move** on a corpus
+  that had such a pair. A document's id was its file name without the extension, so
+  `2023/msa.md` and `2024/msa.md` were both `msa`, and so were `report.pdf` and
+  `report.docx`. Their chunks shared ids: hybrid retrieval fused two different chunks
+  into one result, and chunk health and the check for answers split across chunks
+  read only one of the files. Files whose names collide now take their path under the
+  folder as id (`2024/msa.md`). Every other id stays as it was, so a corpus without a
+  collision keeps its `corpus_sha256`. Documents built in code that share an id are
+  refused with an error.
 - **A passage with other numbers no longer counts as the gold snippet. Scores can
   move.** Fuzzy matching is there to forgive a typo, and at the default 0.90 threshold
   it forgave a changed figure too: "within 14 days" was found in "within 30 days",

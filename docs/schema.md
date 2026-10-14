@@ -28,7 +28,7 @@ Current version: **1.4**.
 |---|---|---|
 | `num_documents` | int | Documents loaded. |
 | `num_documents_with_text` | int | *(1.4)* Documents that yielded extractable text and therefore contributed chunks. Lower than `num_documents` when a scanned PDF, or any file the loader could not read text from, was included: those load and count but contribute nothing to the index. |
-| `documents` | array[str] | Document ids (file stems), in evaluation order (sorted by path at load time). |
+| `documents` | array[str] | Document ids, in evaluation order (sorted by path at load time). An id is the file name without its extension; files whose names collide take their path under the scanned folder instead (`2023/msa.md`, `2024/msa.md`). |
 | `num_questions` | int | Questions provided. |
 | `num_scored_questions` | int | Questions with at least one gold snippet (only these are scored). |
 | `embedding_model` | str | Embedding model name as configured. |
