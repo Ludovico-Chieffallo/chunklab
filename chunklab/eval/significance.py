@@ -75,6 +75,43 @@ def probability_best(
     return (wins / resamples).tolist()
 
 
+#: Resamples behind a "ruled out". The decision sits on a 2.5% tail, and at 10,000
+#: resamples the Monte Carlo error of that tail (about 0.16 points) was enough to
+#: flip it: on the bundled example `semantic` was not worse than the leader in 2.76%
+#: of resamples, and one seed in fifty put it under 2.5%. At 100,000 no seed of fifty
+#: did, for about 30 ms per candidate on 129 questions.
+EXCLUSION_RESAMPLES = 100_000
+
+
+def probability_not_worse(
+    leader: list[float], candidate: list[float], resamples: int = EXCLUSION_RESAMPLES, seed: int = 0
+) -> float:
+    """Share of paired bootstrap resamples in which `candidate` scores at least as
+    well as `leader`.
+
+    Under 2.5% is the one-sided reading of a paired 95% interval that excludes
+    zero, computed as the probability itself so that the decision does not hang on
+    how a percentile of a discrete distribution is interpolated. Resampled in
+    blocks, like `probability_best`, so memory stays flat at any resample count.
+    """
+    if len(leader) != len(candidate):
+        raise ValueError("probability_not_worse requires equal-length score lists")
+    if not leader:
+        return 1.0
+    diffs = np.asarray(leader, dtype=float) - np.asarray(candidate, dtype=float)
+    n = len(diffs)
+    rng = np.random.default_rng(seed)
+    block = max(1, _RESAMPLE_BLOCK_CELLS // n)
+    not_worse = 0
+    drawn = 0
+    while drawn < resamples:
+        size = min(block, resamples - drawn)
+        means = diffs[rng.integers(0, n, size=(size, n))].mean(axis=1)
+        not_worse += int((means <= 1e-12).sum())
+        drawn += size
+    return not_worse / resamples
+
+
 def minimal_confident_set(probabilities: list[float], level: float = 0.95) -> list[int]:
     """Indices of the fewest candidates whose win probabilities reach `level`.
 

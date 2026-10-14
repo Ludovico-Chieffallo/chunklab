@@ -68,16 +68,15 @@ with the one you deploy.
 
 Recommendation:
   No single winner: 'recursive' leads but is the best of the 5 strategies compared in only 42% of 
-bootstrap resamples over 129 scored questions. 3 cannot be ruled out ('recursive', 'structure', 
-'fixed'); 'semantic' (0%), 'semantic_no_floor' (0%) can. Roughly 6938 scored questions would be 
-needed to separate the top two at the observed difference. Add questions before committing to a 
-strategy.
+bootstrap resamples over 129 scored questions. 4 cannot be ruled out ('recursive', 'structure', 
+'fixed', 'semantic'); 'semantic_no_floor' (0%) can. Roughly 6938 scored questions would be needed to
+separate the top two at the observed difference. Add questions before committing to a strategy.
 ```
 <!-- END GENERATED EXAMPLE -->
 
 Note what the recommendation does here. No strategy is best often enough across resamples to be named, so chunklab **refuses to name a winner** — but it does not stop at refusing. It reports which strategies are still in play, which the 129 questions already rule out, and how many more would settle the rest. A tool that always produces a confident answer is the problem this one exists to fix; a tool that only ever says "not enough data" is no better.
 
-The run is still decisive where the data supports it. `recursive`, `structure` and `fixed` are statistically tied, but `semantic_no_floor` is *separated* from all three — recall differences +0.111, +0.099 and +0.103, every paired-bootstrap 95% CI excluding zero. The fragment trap it demonstrates is real and measurable, and the floored `semantic` variant recovers most of it. So the actionable output is "don't ship a semantic splitter without a minimum-size floor, then pick among the top three on context cost" — which is what the `balanced` ranking does, preferring `structure` at 2,128 retrieved tokens over `fixed` at 2,447 despite `fixed`'s marginally higher recall.
+The run is still decisive where the data supports it. `recursive`, `structure` and `fixed` are statistically tied, but `semantic_no_floor` is *separated* from all three — recall differences +0.111, +0.099 and +0.103, every paired-bootstrap 95% CI excluding zero. The fragment trap it demonstrates is real and measurable, and the floored `semantic` variant recovers most of it — enough that `semantic` is not ruled out: it trails `recursive` by 0.088 recall, but scores at least as well in 2.8% of resamples, and chunklab rules a strategy out only below 2.5%. So the actionable output is "don't ship a semantic splitter without a minimum-size floor, then pick among the top three on context cost" — which is what the `balanced` ranking does, preferring `structure` at 2,128 retrieved tokens over `fixed` at 2,447 despite `fixed`'s marginally higher recall.
 
 Open `chunklab_report/report.html` for the full drill-down and the chunk-boundary visualization. The example corpus itself is documented in [`examples/CORPUS.md`](examples/CORPUS.md) — five documents designed so that different strategies win on different documents.
 
