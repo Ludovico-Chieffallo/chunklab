@@ -39,6 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with 0.5.0**, whose scoring changed: re-record it.
 
 ### Added
+- **`verdict` in the report: the recommendation as data.** For each axis it records
+  whether a winner was named, the leader, every candidate's chance of being best,
+  what is in play and what is ruled out, the margin over the runner-up with its CI,
+  the questions estimated to separate the top two, and in a matrix the value of the
+  other axis it was measured under. A CI job no longer has to parse the English,
+  and `docs/schema.md` no longer describes `recommendation` as "naming the winner",
+  which most runs do not. Report schema 1.5.
 - `corpus_summary.fuzzy_threshold` in the report, so `check` can tell when two runs
   were scored under different thresholds. Report schema 1.5.
 
