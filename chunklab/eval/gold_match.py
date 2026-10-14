@@ -104,6 +104,12 @@ def locate(snippet: str, text: str, fuzzy_threshold: float) -> Match | None:
     pending: list[tuple[float, int, int, int, int]] = []
 
     def search(lo: int, hi: int) -> None:
+        if hi - lo < len(snippet):
+            # Too short to contain the snippet. partial_ratio would turn the roles around
+            # and find the text inside the snippet, so any fragment of the answer would
+            # score 100: compare the two whole instead.
+            heapq.heappush(pending, (-fuzz.ratio(snippet, text[lo:hi]), lo, lo, hi, hi))
+            return
         alignment = fuzz.partial_ratio_alignment(snippet, text[lo:hi])
         if alignment is not None:
             item = (-alignment.score, lo, lo + alignment.dest_start, lo + alignment.dest_end, hi)

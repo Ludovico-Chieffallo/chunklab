@@ -143,6 +143,8 @@ def test_snippets_without_numbers_score_exactly_as_before():
         snippet = " ".join(rng.choices(words, k=rng.randint(1, 10)))
         text = " ".join(rng.choices(words, k=rng.randint(1, 40)))
         g, c = normalize(snippet), normalize(text)
+        if len(c) < len(g):
+            continue  # a text too short to hold the snippet: see test_gold_fragments.py
         before = g in c or fuzz.partial_ratio(g, c) / 100.0 >= 0.90
 
         assert snippet_in_text(snippet, text) == before, (snippet, text)
