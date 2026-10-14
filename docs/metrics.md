@@ -16,7 +16,10 @@ built the way it is.
 
 A "found" gold snippet means the snippet text is contained in a retrieved chunk (exact
 containment after whitespace/case normalization, or fuzzy containment above
-`eval.fuzzy_threshold`).
+`eval.fuzzy_threshold`). Either way, every number in the snippet must appear in the
+passage as written and in the same order: fuzzy matching forgives a typo, never a
+different figure. "within 14 days" is not found in "within 30 days", and "5 business
+days" is not found in "15 business days".
 
 ## The large-chunk bias, and the `balanced` ranking
 

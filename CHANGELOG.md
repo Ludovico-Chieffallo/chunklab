@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **A passage with other numbers no longer counts as the gold snippet. Scores can
+  move.** Fuzzy matching is there to forgive a typo, and at the default 0.90 threshold
+  it forgave a changed figure too: "within 14 days" was found in "within 30 days",
+  "10 MB" in "50 MB", "1.5x" in "2.5x". On a 26-paper corpus a snippet for a trial's
+  high-dose result (80%, 84% and 96%) was counted as found in the low-dose sentence
+  before it (47%, 52% and 56%), by three cells of the matrix, the leading one among
+  them. Every number in a snippet must now appear in the matching passage as written
+  and in the same order. Exact containment can no longer cut a number in half either:
+  "5 business days" is not found in "15 business days". Snippets without numbers score
+  exactly as before, and every result on the bundled example stays the same.
+- **`validate` reports such a snippet as a `numbers_differ` error** that names both
+  sets of numbers. Before, it called the match a harmless `fuzzy_only` drift and
+  offered the passage with the wrong figures as the verbatim text to paste. When the
+  corpus holds a passage with the snippet's numbers as well, `validate` now points at
+  that one, whichever is closer.
+
 ## [0.4.1] - 2026-10-13
 
 Everything below came out of installing 0.4.0 from PyPI into a clean virtualenv and

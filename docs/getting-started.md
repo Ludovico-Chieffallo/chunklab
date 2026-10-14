@@ -50,7 +50,9 @@ questions:
 Practical advice, in rough order of impact:
 
 - **Copy, never retype.** Paste the passage from the parsed document. A paraphrase scores
-  zero for every strategy, which looks like a chunking problem and is not.
+  zero for every strategy, which looks like a chunking problem and is not. Numbers above
+  all: a typo in the words is forgiven, a snippet whose numbers differ from the source is
+  never counted as found.
 - **Aim for 15–30.** Below 15, chunklab warns you: differences between strategies will not
   be statistically meaningful, and the report will decline to name a winner (see
   [metrics.md](metrics.md)).
@@ -70,9 +72,9 @@ chunklab validate --docs ./docs --questions questions.yaml
 ```
 
 This catches the mistakes that silently ruin an evaluation — snippets that drifted from
-the source, duplicate ids, snippets so short they match by accident, snippets that appear
-in several documents — and for a drifted snippet it prints the **verbatim source text,
-ready to paste**:
+the source, snippets whose closest passage states other numbers, duplicate ids, snippets
+so short they match by accident, snippets that appear in several documents — and for a
+drifted snippet it prints the **verbatim source text, ready to paste**:
 
 ```
 ERROR q1 (not_found): gold snippet not found in the corpus (closest match 81%):
