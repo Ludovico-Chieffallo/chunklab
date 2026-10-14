@@ -57,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   were scored under different thresholds. Report schema 1.5.
 
 ### Fixed
+- **The ranked table marks what the verdict decided, not whatever sorted first.** Its
+  first row carried ▶, which reads as "the winner", on every run: on the bundled
+  example, whose verdict is "No single winner", and on a 26-paper matrix whose marked
+  cell held a strategy the text said could be ruled out. Now ✓ marks a winner the
+  verdict named and ✗ what it ruled out, and the rest is unmarked; in a matrix a row
+  is out when its strategy or its retriever is. The HTML report does the same.
 - **A strategy listed twice in the config is refused.** Results are keyed by
   strategy name, so listing `fixed` twice with two chunk sizes, the natural way to
   compare them, made the entries overwrite each other: the 64-token `fixed` was

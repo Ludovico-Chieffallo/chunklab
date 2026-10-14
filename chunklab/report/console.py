@@ -3,8 +3,10 @@
 from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
+from rich.text import Text
 
 from chunklab.models import ChunkHealth, EvalReport
+from chunklab.report.status import MARKS, row_status
 
 #: Diagnostics derived from the chunks alone. Every retriever a strategy is
 #: evaluated under reports the same four numbers, so in a matrix they are the
@@ -88,9 +90,12 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
         for name in _CHUNK_HEALTH_COLUMNS:
             table.add_column(name, justify="right")
 
-    for i, r in enumerate(report.strategy_results):
-        style = "green" if i == 0 else None
-        row = [("▶ " if i == 0 else "  ") + escape(r.strategy)]
+    statuses = [row_status(report, r) for r in report.strategy_results]
+    for r, status in zip(report.strategy_results, statuses, strict=True):
+        style = {"winner": "green", "ruled out": "dim"}.get(status)
+        # One line, truncated if it must be: wrapped, a narrow table put the row's ✗
+        # on one line and its strategy's name on the next.
+        row = [Text(MARKS[status] + r.strategy, no_wrap=True, overflow="ellipsis")]
         if show_retriever:
             row.append(escape(r.retriever))
         if ranking == "balanced":
@@ -109,8 +114,11 @@ def print_report(report: EvalReport, console: Console | None = None) -> None:
     if show_retriever:
         _print_chunk_health(report, console)
 
+    legend = {"winner": "✓ the verdict's winner", "ruled out": "✗ ruled out by the evidence"}
+    marked = " · ".join(text for status, text in legend.items() if status in statuses)
     console.print(
-        f"[dim]recall/MRR/prec: retrieval quality at k={k} · tok@{k}: mean tokens retrieved "
+        (f"[dim]{marked} · [/dim]" if marked else "")
+        + f"[dim]recall/MRR/prec: retrieval quality at k={k} · tok@{k}: mean tokens retrieved "
         "per question (context cost) · %tiny: chunks under the size floor · boundary: chunks "
         "not cut mid-sentence · full definitions: docs/metrics.md[/dim]"
     )
