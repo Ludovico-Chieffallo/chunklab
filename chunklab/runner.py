@@ -218,18 +218,48 @@ def _tie_advice(
     )
 
 
+def _ruled_out(ranked: list[StrategyResult], chances: list[float], config: Config) -> set[int]:
+    """Indices of the candidates the evidence is against, not merely thin on.
+
+    Outside the fewest candidates whose chances of being best reach 95% is not
+    enough on its own. On a 26-paper corpus that ruled out a strategy with a 4%
+    chance whose paired CI against the leader was [+0.000, +0.111], kept one
+    with the same recall because it was more variable, and changed with the
+    seed, because the cumulative 95% fell exactly on that strategy. A candidate
+    is ruled out only when it also loses to the leader by more than sampling
+    noise: it scores at least as well as the leader in under 2.5% of paired
+    resamples, which is a paired 95% interval excluding zero.
+    """
+    from chunklab.eval.significance import (
+        EXCLUSION_RESAMPLES,
+        minimal_confident_set,
+        probability_not_worse,
+    )
+
+    unlikely = set(range(len(ranked))) - set(minimal_confident_set(chances))
+    leader = _per_question_recalls(ranked[0])
+    resamples = max(EXCLUSION_RESAMPLES, config.eval.bootstrap_resamples)
+    return {
+        i
+        for i in unlikely - {0}
+        if probability_not_worse(
+            leader, _per_question_recalls(ranked[i]), resamples=resamples, seed=config.eval.seed
+        )
+        < 0.025
+    }
+
+
 def _undecided(
     ranked: list[StrategyResult],
     axis: _Axis,
     num_scored: int,
     chances: list[float],
     gap: tuple[float, tuple[float, float], int] | None,
+    config: Config,
 ) -> str:
     """The verdict when no candidate is clearly best, said as informatively as
     the evidence allows."""
-    from chunklab.eval.significance import minimal_confident_set
-
-    keep = set(minimal_confident_set(chances))
+    keep = set(range(len(ranked))) - _ruled_out(ranked, chances, config)
     names = [axis.name(r) for r in ranked]
     plausible = [names[i] for i in range(len(names)) if i in keep]
     excluded = [f"'{names[i]}' ({chances[i]:.0%})" for i in range(len(names)) if i not in keep]
@@ -279,7 +309,7 @@ def _verdict(
             scores, resamples=config.eval.bootstrap_resamples, seed=config.eval.seed
         )
         if chances[0] < SELECTION_CONFIDENCE:
-            return _undecided(ranked, axis, num_scored, chances, gap), False
+            return _undecided(ranked, axis, num_scored, chances, gap, config), False
 
     params = ", ".join(f"{key}={val}" for key, val in best.config.items())
     sentence = (

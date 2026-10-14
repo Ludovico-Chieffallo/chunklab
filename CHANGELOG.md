@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **A strategy is ruled out only on evidence against it. The bundled example's verdict
+  changes.** An undecided verdict ruled out everything outside the fewest candidates
+  whose chances of being best add up to 95%. On a 26-paper corpus that ruled out
+  `recursive`, at 4%, while its paired 95% CI against the leader was [+0.000, +0.111].
+  It kept `semantic_no_floor`, with the same recall, because it was more variable. And
+  it changed with the seed: `recursive` was out on 41 seeds of 50 and in play on 9. A
+  candidate must now also score at least as well as the leader in under 2.5% of paired
+  resamples, which is a paired 95% interval that excludes zero. That test runs on
+  100,000 resamples, so it does not move with the seed: one decision on all 50 seeds,
+  on that corpus and on both runs of the bundled example. On the bundled example,
+  `semantic` is no longer ruled out: it trails by 0.088 recall but scores at least as
+  well in 2.8% of resamples. `semantic_no_floor` still is.
 - **`run` and `check` check the question set first, and stop on an error.** A gold
   snippet that is not in the corpus scores zero for every strategy, and nothing said
   so: with one such snippet in two questions, every cell read 0.50 recall and the

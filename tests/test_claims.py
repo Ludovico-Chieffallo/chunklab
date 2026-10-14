@@ -34,6 +34,9 @@ CLAIMS: dict[str, str] = {
     "+0.103": "fixed - semantic_no_floor recall difference, example corpus",
     "2,128": "structure retrieved_tokens_at_k, example corpus",
     "2,447": "fixed retrieved_tokens_at_k, example corpus",
+    "0.088": "recursive - semantic recall difference, example corpus",
+    "2.8%": "share of paired resamples where semantic scores at least as well as recursive,"
+    " example corpus (eval.significance.probability_not_worse, 100,000 resamples, seed 0)",
     # README + index, opening. Reproduce with scripts/benchmarks/ (docs/benchmarks.md).
     "+0.000": "structure - recursive recall difference, QASPER 889 questions",
     "+0.034": "recursive - structure recall difference, QASPER 70 questions",
@@ -42,6 +45,8 @@ CLAIMS: dict[str, str] = {
     "95%": "the confidence level used throughout",
     # The selection gate, not a measurement: eval.significance.SELECTION_CONFIDENCE.
     "90%": "share of bootstrap resamples a strategy must win before it is named",
+    # The exclusion rule, not a measurement: the one-sided end of a paired 95% interval.
+    "2.5%": "a strategy is ruled out only if it matches the leader in fewer resamples",
 }
 
 #: Pages reporting measured results must carry a "Reproducing" section.

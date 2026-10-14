@@ -207,6 +207,12 @@ With few questions, small metric differences are noise. chunklab therefore:
   A strategy is named only above `SELECTION_CONFIDENCE` (0.90); below it the report names
   no winner, lists the candidates that cannot be ruled out, names those that can, and
   estimates how many questions would settle the rest;
+- rules a candidate out only on evidence against it: it must fall outside the fewest
+  candidates whose chances of being best add up to 95%, **and** score at least as well as
+  the leader in under 2.5% of paired resamples — a paired 95% interval that excludes zero.
+  A small chance of being best is not enough on its own: on a 26-paper corpus it ruled out
+  a strategy whose interval against the leader was [+0.000, +0.111], and changed with the
+  seed. The second test runs on 100,000 resamples, because it sits on a 2.5% tail;
 - warns when fewer than 15 scored questions are provided.
 
 ### Why a probability and not a corrected pairwise test
@@ -246,10 +252,12 @@ tie-break even when recall cannot distinguish them.
 
 An undecided run is common and is not a failure of the tool — but it must still carry
 information. On the bundled example corpus no strategy clears the bar (the leader wins
-42% of resamples), and the report says so; it also reports that three of the five remain
-in play and that **both** `semantic` variants are ruled out. A field narrowed from five
-to three, plus a clear rejection of the laggards, is an actionable result. "Not enough
-data" on its own is not.
+42% of resamples), and the report says so; it also reports that four of the five remain
+in play and that `semantic_no_floor`, the fragment trap, is ruled out. `semantic` trails
+the leader by 0.088 recall and has almost no chance of being best, but it scores at least
+as well in 2.8% of paired resamples, just above the 2.5% bar, so it is not ruled out. The
+fragment trap rejected on the evidence, and nothing rejected without it, is an actionable
+result. "Not enough data" on its own is not.
 
 ## Chunk-health diagnostics (retrieval-independent)
 
