@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.markup import escape
 
 import chunklab
-from chunklab.errors import DocumentLoadError, InputError
+from chunklab.errors import DocumentLoadError, InputError, InvalidQuestionSet
 
 # Locals off explicitly: Typer 0.12, inside our supported range, prints every
 # local variable of a crashed command, and those hold document text.
@@ -34,16 +34,45 @@ def _one_line_errors(command):
 
     @functools.wraps(command)
     def wrapper(*args, **kwargs):
+        debug = os.environ.get("CHUNKLAB_DEBUG", "").strip().lower() not in {"", "0", "false"}
         try:
             return command(*args, **kwargs)
+        except InvalidQuestionSet as exc:
+            if debug:
+                raise
+            # One line would name only the first; each is a snippet to fix.
+            _print_issues(exc.errors)
+            console.print(
+                f"[red]Error:[/red] the question set has {len(exc.errors)} error(s), listed "
+                "above. Scored as it is, the run would measure them rather than the chunking: "
+                "a snippet missing from the corpus scores zero for every strategy. Fix them, "
+                "or pass --skip-validation to run anyway.",
+                soft_wrap=True,
+            )
+            raise typer.Exit(2) from None
         except (InputError, DocumentLoadError) as exc:
-            if os.environ.get("CHUNKLAB_DEBUG", "").strip().lower() not in {"", "0", "false"}:
+            if debug:
                 raise
             # soft_wrap: the terminal wraps it, so a long path stays copyable.
             console.print(f"[red]Error:[/red] {escape(str(exc))}", soft_wrap=True)
             raise typer.Exit(2) from None
 
     return wrapper
+
+
+def _print_issues(issues) -> None:
+    """`validate`'s findings, each with the verbatim source text when there is one."""
+    for issue in issues:
+        tag = "[red]ERROR[/red]" if issue.severity == "error" else "[yellow]WARN [/yellow]"
+        console.print(
+            f"{tag} [bold]{escape(issue.question_id)}[/bold] ({issue.kind}): "
+            f"{escape(issue.message)}"
+        )
+        if issue.suggestion:
+            console.print(
+                f"      found at [dim]{escape(str(issue.location))}[/dim], verbatim source text:"
+            )
+            console.print(f"      [green]{escape(repr(issue.suggestion))}[/green]")
 
 
 def _load_documents(docs: Path):
@@ -87,8 +116,17 @@ def run(
         "--compare-retrievers",
         help="Evaluate every strategy under dense, BM25 and hybrid retrieval.",
     ),
+    skip_validation: bool = typer.Option(
+        False,
+        "--skip-validation",
+        help="Score the question set even when 'chunklab validate' finds errors in it.",
+    ),
 ) -> None:
-    """Run the chunking evaluation and write the reports."""
+    """Run the chunking evaluation and write the reports.
+
+    The question set is checked first, as `chunklab validate` does, and the run
+    stops on an error before anything is embedded.
+    """
     from chunklab.config import load_config
     from chunklab.report.console import print_report
     from chunklab.report.html import write_html_report
@@ -110,6 +148,7 @@ def run(
             questions=questions,
             config=cfg,
             on_progress=lambda message: status.update(escape(message)),
+            skip_validation=skip_validation,
         )
 
     out_dir = Path(cfg.output.dir)
@@ -151,17 +190,7 @@ def validate(
     qs = load_questions(questions)
     report = validate_questions(qs, documents, fuzzy_threshold=cfg.eval.fuzzy_threshold)
 
-    for issue in report.issues:
-        tag = "[red]ERROR[/red]" if issue.severity == "error" else "[yellow]WARN [/yellow]"
-        console.print(
-            f"{tag} [bold]{escape(issue.question_id)}[/bold] ({issue.kind}): "
-            f"{escape(issue.message)}"
-        )
-        if issue.suggestion:
-            console.print(
-                f"      found at [dim]{escape(str(issue.location))}[/dim], verbatim source text:"
-            )
-            console.print(f"      [green]{escape(repr(issue.suggestion))}[/green]")
+    _print_issues(report.issues)
 
     console.print(
         f"\n{report.num_questions} questions, {report.num_scored} scored, "
@@ -190,6 +219,11 @@ def check(
     update_baseline: bool = typer.Option(
         False, "--update-baseline", help="Overwrite the baseline with this run and exit 0."
     ),
+    skip_validation: bool = typer.Option(
+        False,
+        "--skip-validation",
+        help="Score the question set even when 'chunklab validate' finds errors in it.",
+    ),
 ) -> None:
     """Fail when retrieval quality has regressed since a baseline run (for CI).
 
@@ -210,6 +244,7 @@ def check(
             questions=questions,
             config=cfg,
             on_progress=lambda message: status.update(escape(message)),
+            skip_validation=skip_validation,
         )
 
     if update_baseline:

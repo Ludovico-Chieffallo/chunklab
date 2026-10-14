@@ -157,6 +157,8 @@ ERROR q1 (not_found): gold snippet not found in the corpus (closest match 81%):
       '300 requests per minute on Starter, 1,200 on'
 ```
 
+`run` and `check` make the same check before anything is embedded, and stop on an error: a broken snippet costs seconds instead of a whole run. `--skip-validation` scores the set as it is.
+
 The full workflow, honestly timed, is in [`docs/getting-started.md`](docs/getting-started.md).
 Gate a pipeline on retrieval regressions with `chunklab check` — [`docs/ci.md`](docs/ci.md).
 Put your own splitter in the comparison: [`docs/extending.md`](docs/extending.md).
