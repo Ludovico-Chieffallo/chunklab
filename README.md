@@ -118,7 +118,7 @@ On a corpus where several documents cover the same ground — review papers, pro
 Each top-level entry is a **slot** and recall is the fraction of slots filled, so alternatives raise the ceiling instead of the denominator. Plain strings still mean exactly what they always did — a slot with one acceptable passage — and mixing the two forms in one question is fine when some passages are genuinely required and others are interchangeable.
 
 Tips:
-- Copy the gold snippet **verbatim** from the source so matching is reliable (small drift is absorbed by fuzzy matching, threshold configurable).
+- Copy the gold snippet **verbatim** from the source so matching is reliable (small drift in the wording is absorbed by fuzzy matching, threshold configurable; a number must match exactly).
 - A question with no `gold_snippets` is skipped — add the passage to include it.
 - Aim for 15–30 questions: below 15, differences between strategies are usually noise, and chunklab will say so rather than pick a winner.
 

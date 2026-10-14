@@ -7,13 +7,19 @@ those cases and prints the corrected verbatim text, ready to paste.
 """
 
 import re
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from pydantic import BaseModel, Field
-from rapidfuzz import fuzz
 
 from chunklab.chunkers.base import section_path_at
-from chunklab.eval.gold_match import variants
+from chunklab.eval.gold_match import (
+    accepted,
+    exact_occurrences,
+    locate,
+    numbers_in,
+    snap_to_words,
+    variants,
+)
 from chunklab.models import Document, Question
 from chunklab.text_utils import count_tokens
 
@@ -95,13 +101,12 @@ class _IndexedDoc:
         self.norm, self.offsets = normalize_with_map(document.text)
 
     def occurrences(self, norm_gold: str) -> list[int]:
-        """Offsets into the original text of every occurrence of `norm_gold`."""
-        found: list[int] = []
-        at = self.norm.find(norm_gold)
-        while at != -1:
-            found.append(self.offsets[at])
-            at = self.norm.find(norm_gold, at + 1)
-        return found
+        """Offsets into the original text of every occurrence of `norm_gold`.
+
+        Only the occurrences scoring counts: one that cuts a number in half
+        ("5 business days" inside "15 business days") is not one.
+        """
+        return [self.offsets[at] for at in exact_occurrences(norm_gold, self.norm)]
 
 
 def in_bibliography(document: Document, offset: int) -> bool:
@@ -121,43 +126,43 @@ def in_bibliography(document: Document, offset: int) -> bool:
 SUGGESTION_FLOOR = 0.60
 
 
-def _snap_to_words(text: str, start: int, end: int) -> tuple[int, int]:
-    """Widen [start, end) so it never cuts a word in half."""
-    while start > 0 and not text[start - 1].isspace():
-        start -= 1
-    while end < len(text) and not text[end - 1].isspace() and not text[end].isspace():
-        end += 1
-    return start, end
+class _Closest(NamedTuple):
+    score: float  # similarity 0-1
+    numbers_agree: bool
+    text: str | None  # verbatim source passage; None when nothing plausible was found
+    location: str | None  # "doc:offset"
 
 
-def _best_match(gold: str, docs: list[_IndexedDoc]) -> tuple[float, str | None, str | None]:
-    """Best fuzzy alignment of `gold` across docs.
+def _closest(gold: str, docs: list[_IndexedDoc], fuzzy_threshold: float) -> _Closest:
+    """The passage scoring would count as `gold`, or else the closest one, across docs.
 
-    Returns (similarity 0-1, verbatim text of the aligned window, "doc:offset").
     The text is None when nothing plausible was found, so the caller never
     prints a misleading "correction".
     """
     norm_gold, _ = normalize_with_map(gold)
-    best: tuple[float, str | None, str | None] = (0.0, None, None)
+    best = _Closest(0.0, True, None, None)
+    best_key: tuple[bool, float] | None = None
     for d in docs:
-        if not d.norm or not norm_gold:
+        match = locate(norm_gold, d.norm, fuzzy_threshold)
+        if match is None or match.start >= len(d.offsets):
             continue
-        alignment = fuzz.partial_ratio_alignment(norm_gold, d.norm)
-        if alignment is None:
+        # A passage scoring would count beats any closer one it would not.
+        key = (accepted(match, fuzzy_threshold), match.score)
+        if best_key is not None and key <= best_key:
             continue
-        score = alignment.score / 100.0
-        if score <= best[0]:
-            continue
-        start_n, end_n = alignment.dest_start, alignment.dest_end
-        if start_n >= len(d.offsets):
-            continue
-        start = d.offsets[start_n]
-        end = d.offsets[min(end_n, len(d.offsets) - 1)] + 1
-        start, end = _snap_to_words(d.document.text, start, end)
-        best = (score, d.document.text[start:end].strip(), f"{d.document.id}:{start}")
+        start = d.offsets[match.start]
+        end = d.offsets[min(match.end, len(d.offsets) - 1)] + 1
+        start, end = snap_to_words(d.document.text, start, end)
+        best_key = key
+        best = _Closest(
+            match.score,
+            match.numbers_agree,
+            d.document.text[start:end].strip(),
+            f"{d.document.id}:{start}",
+        )
 
-    if best[0] < SUGGESTION_FLOOR:
-        return (best[0], None, None)
+    if best.score < SUGGESTION_FLOOR:
+        return best._replace(text=None, location=None)
     return best
 
 
@@ -213,10 +218,12 @@ def validate_questions(
                 )
                 continue
 
-            containing = [d for d in indexed if norm_gold in d.norm]
+            found = [(d, d.occurrences(norm_gold)) for d in indexed]
+            containing = [d for d, offsets in found if offsets]
             if not containing:
-                score, verbatim, location = _best_match(gold, indexed)
-                if score >= fuzzy_threshold:
+                closest = _closest(gold, indexed, fuzzy_threshold)
+                score, verbatim, location = closest.score, closest.text, closest.location
+                if score >= fuzzy_threshold and closest.numbers_agree:
                     report.issues.append(
                         Issue(
                             severity="warning",
@@ -226,6 +233,31 @@ def validate_questions(
                                 f"gold snippet matches only fuzzily ({score:.0%}); scoring "
                                 "will rely on the fuzzy threshold. Replace with the "
                                 "verbatim source text."
+                            ),
+                            suggestion=verbatim,
+                            location=location,
+                            similarity=score,
+                        )
+                    )
+                elif score >= fuzzy_threshold:
+                    # Typo tolerance must never turn one figure into another: on a
+                    # 26-paper corpus a snippet for a trial's high-dose result matched
+                    # the low-dose sentence before it at 91%, and this branch used to
+                    # offer that sentence as the text to paste.
+                    ours = ", ".join(numbers_in(gold))
+                    theirs = ", ".join(numbers_in(verbatim or "")) or "none"
+                    advice = "Copy the snippet verbatim from the passage that states your numbers"
+                    if verbatim:
+                        advice += ", or use the text below if the snippet's numbers were the typo"
+                    report.issues.append(
+                        Issue(
+                            severity="error",
+                            kind="numbers_differ",
+                            question_id=q.id,
+                            message=(
+                                f"gold snippet is close ({score:.0%}) only to a passage with "
+                                f"other numbers: {ours} in the snippet, {theirs} in the source. "
+                                f"Scoring never counts it as found. {advice}."
                             ),
                             suggestion=verbatim,
                             location=location,
@@ -260,7 +292,7 @@ def validate_questions(
             # because every strategy retrieves some bibliography chunk, and
             # another by none, because a list of citations is nowhere near the
             # query. Neither outcome says anything about chunking.
-            placements = [(d, off) for d in containing for off in d.occurrences(norm_gold)]
+            placements = [(d, off) for d, offsets in found for off in offsets]
             if placements and all(in_bibliography(d.document, off) for d, off in placements):
                 first_doc, first_off = placements[0]
                 report.issues.append(

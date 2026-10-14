@@ -1,12 +1,17 @@
 """Gold-snippet matching: does a retrieved chunk contain the answer? (spec §4.4)"""
 
+import heapq
 import re
+from typing import NamedTuple
 
 from rapidfuzz import fuzz
 
 from chunklab.models import GoldSlot, Question, QuestionResult, RetrievedChunk
 
 _WS_RE = re.compile(r"\s+")
+
+#: A number as written: digits, with any decimal or thousands separators inside it.
+_NUMBER_RE = re.compile(r"\d+(?:[.,]\d+)*")
 
 
 def variants(slot: GoldSlot) -> list[str]:
@@ -22,14 +27,118 @@ def normalize(text: str) -> str:
     return _WS_RE.sub(" ", text.lower()).strip()
 
 
+def numbers_in(text: str) -> list[str]:
+    """The numbers in `text`, in order, exactly as written."""
+    return _NUMBER_RE.findall(text)
+
+
+def same_numbers(snippet: str, passage: str) -> bool:
+    """True when every number in `snippet` appears in `passage`, in the same order.
+
+    Extra numbers in the passage are fine: a window widened to whole words can
+    pick one up at either edge.
+    """
+    remaining = iter(numbers_in(passage))
+    # `in` advances the iterator, so each number is looked for after the previous one.
+    return all(number in remaining for number in numbers_in(snippet))
+
+
+def snap_to_words(text: str, start: int, end: int) -> tuple[int, int]:
+    """Widen [start, end) so it never cuts a word in half."""
+    while 0 < start < len(text) and not text[start - 1].isspace() and not text[start].isspace():
+        start -= 1
+    while 0 < end < len(text) and not text[end - 1].isspace() and not text[end].isspace():
+        end += 1
+    return start, end
+
+
+class Match(NamedTuple):
+    """Where a snippet aligns in a text: [start, end) and a 0-1 similarity."""
+
+    score: float
+    start: int
+    end: int
+    numbers_agree: bool
+
+
+def _agrees(snippet: str, text: str, start: int, end: int) -> bool:
+    start, end = snap_to_words(text, start, end)
+    return same_numbers(snippet, text[start:end])
+
+
+def exact_occurrences(snippet: str, text: str) -> list[int]:
+    """Offsets of every occurrence of `snippet` in `text` that leaves its numbers whole.
+
+    Plain containment finds "5 business days" inside "15 business days". Both
+    arguments are normalized text.
+    """
+    found: list[int] = []
+    at = text.find(snippet)
+    while at != -1:
+        if _agrees(snippet, text, at, at + len(snippet)):
+            found.append(at)
+        at = text.find(snippet, at + 1)
+    return found
+
+
+def locate(snippet: str, text: str, fuzzy_threshold: float) -> Match | None:
+    """The passage of `text` that counts as `snippet`, or else the closest one.
+
+    Both arguments are normalized. An exact occurrence wins; otherwise fuzzy
+    alignments are tried best first. A passage whose numbers differ from the
+    snippet's never counts, however close its words: "within 14 days" is not
+    "within 30 days", and typo tolerance must not say it is. On templated text the
+    closest alignment is often exactly that, so it is set aside and the rest of
+    the text is searched again.
+
+    When nothing counts, the closest alignment is returned all the same, with its
+    score and `numbers_agree`, so `validate` can show it and say why it failed.
+    None only when there is nothing to align.
+    """
+    if not snippet or not text:
+        return None
+    exact = exact_occurrences(snippet, text)
+    if exact:
+        return Match(1.0, exact[0], exact[0] + len(snippet), True)
+
+    pending: list[tuple[float, int, int, int, int]] = []
+
+    def search(lo: int, hi: int) -> None:
+        alignment = fuzz.partial_ratio_alignment(snippet, text[lo:hi])
+        if alignment is not None:
+            item = (-alignment.score, lo, lo + alignment.dest_start, lo + alignment.dest_end, hi)
+            heapq.heappush(pending, item)
+
+    search(0, len(text))
+    closest: Match | None = None
+    while pending:
+        negative_score, lo, start, end, hi = heapq.heappop(pending)
+        match = Match(-negative_score / 100.0, start, end, _agrees(snippet, text, start, end))
+        if closest is None:
+            closest = match
+        if match.score < fuzzy_threshold:
+            break
+        if match.numbers_agree:
+            return match
+        # The same words with other numbers: not this snippet. Search either side of it,
+        # where there is still room for the whole snippet.
+        start, end = snap_to_words(text, start, end)
+        if end <= start:
+            continue
+        for side_lo, side_hi in ((lo, start), (end, hi)):
+            if side_hi - side_lo >= len(snippet):
+                search(side_lo, side_hi)
+    return closest
+
+
+def accepted(match: Match | None, fuzzy_threshold: float) -> bool:
+    """Whether scoring counts `match` as the snippet."""
+    return match is not None and match.score >= fuzzy_threshold and match.numbers_agree
+
+
 def snippet_in_text(snippet: str, text: str, fuzzy_threshold: float = 0.90) -> bool:
-    g, c = normalize(snippet), normalize(text)
-    if not g or not c:
-        return False
-    if g in c:
-        return True
-    # Fuzzy containment: best alignment of the snippet inside the chunk.
-    return fuzz.partial_ratio(g, c) / 100.0 >= fuzzy_threshold
+    match = locate(normalize(snippet), normalize(text), fuzzy_threshold)
+    return accepted(match, fuzzy_threshold)
 
 
 def _adjacent(a: RetrievedChunk, b: RetrievedChunk) -> bool:
