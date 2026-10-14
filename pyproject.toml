@@ -36,13 +36,14 @@ dependencies = [
     "rapidfuzz>=3.0",
     "jinja2>=3.1",
     "langchain-text-splitters>=0.2",
-    "pymupdf4llm>=0.0.17",
     "python-docx>=1.1",
     "sentence-transformers>=3.0",
 ]
 
 [project.optional-dependencies]
 demo = ["gradio>=4.0"]
+# An extra, not a dependency: pymupdf4llm and PyMuPDF are AGPL-3.0, and chunklab is MIT.
+pdf = ["pymupdf4llm>=0.0.17"]
 # ruff is pinned to a minor range: `ruff format` is a CI gate, and a new release
 # that formats something differently (0.16 began formatting Python blocks inside
 # markdown) turns every unrelated PR red until someone reformats.
@@ -50,7 +51,16 @@ demo = ["gradio>=4.0"]
 # in the README, so CI has to actually build the interface.
 # build is pinned to the range release.yml builds with, so a local sdist or wheel is the
 # artifact CI would make.
-dev = ["pytest>=8.0", "ruff>=0.16,<0.17", "pre-commit>=3.5", "gradio>=4.0", "build>=1.6,<2"]
+# pymupdf4llm is here for the reason gradio is: the suite reads a real PDF, so CI
+# exercises the extra that users install.
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.16,<0.17",
+    "pre-commit>=3.5",
+    "gradio>=4.0",
+    "build>=1.6,<2",
+    "pymupdf4llm>=0.0.17",
+]
 
 [project.scripts]
 chunklab = "chunklab.cli:app"

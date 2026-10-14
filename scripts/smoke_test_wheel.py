@@ -165,6 +165,18 @@ def main() -> int:
             f"exit {mistake.returncode}: {mistake.stdout[:300]}",
         )
 
+        # The wheel is installed without extras, which is how a user without PDF
+        # support meets a PDF: the line must name the extra to install.
+        (work / "pdfs").mkdir()
+        (work / "pdfs" / "report.pdf").write_bytes(b"%PDF-1.4\n")
+        pdf = run(str(chunklab), "validate", "--docs", "pdfs", "--questions", "questions.yaml")
+        pdf_lines = [line for line in pdf.stdout.splitlines() if line.strip()]
+        check(
+            "a PDF without the pdf extra is one line naming it",
+            pdf.returncode == 2 and len(pdf_lines) == 1 and "chunklab[pdf]" in pdf.stdout,
+            f"exit {pdf.returncode}: {pdf.stdout[:300]}",
+        )
+
     print(f"\n{len(failures)} failure(s)" if failures else "\nthe installed wheel works")
     return 1 if failures else 0
 

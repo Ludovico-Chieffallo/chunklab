@@ -109,6 +109,13 @@ def load_documents(docs_path: str | Path, skipped: list[Path] | None = None) -> 
             f"no supported documents found under {path} (supported: {supported}){detail}"
         )
 
+    # Before reading anything: a folder of PDFs should not be half-parsed first.
+    pdfs = sum(1 for file in files if file.suffix.lower() == ".pdf")
+    if pdfs:
+        from chunklab.loaders.pdf import require_pdf_support
+
+        require_pdf_support(pdfs)
+
     documents: list[Document] = []
     for file in files:
         try:

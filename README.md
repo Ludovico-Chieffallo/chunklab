@@ -38,6 +38,12 @@ docs + questions ─▶ [fixed · recursive · semantic · structure] ─▶ ran
 pip install chunklab
 ```
 
+PDFs need one more package, kept as an extra because its library is AGPL-licensed (see [License](#license)). DOCX, TXT and MD need nothing more:
+
+```bash
+pip install "chunklab[pdf]"
+```
+
 The first run downloads the embedding model (~130 MB) once and caches it.
 
 ## 60-second quickstart
@@ -226,8 +232,8 @@ The `EvalReport` schema is a versioned public contract (`report.schema_version`,
 ## Web demo
 
 ```bash
-pip install "chunklab[demo]"
-chunklab demo          # launches a local Gradio app
+pip install "chunklab[demo]"   # "chunklab[demo,pdf]" to upload PDFs too
+chunklab demo                  # launches a local Gradio app
 ```
 
 Upload a document, type a few questions with gold snippets, pick strategies, and see the ranked comparison plus the chunk visualization.
@@ -240,7 +246,7 @@ Upload a document, type a few questions with gold snippets, pick strategies, and
 
 ## Supported inputs
 
-Documents: **PDF, DOCX, TXT, MD**. Corpora of tens to low-hundreds of documents (this is a pre-flight tool, not a batch pipeline).
+Documents: **PDF** (with the `pdf` extra), **DOCX, TXT, MD**. Corpora of tens to low-hundreds of documents (this is a pre-flight tool, not a batch pipeline).
 
 When `--docs` is a folder, hidden files and folders and the `~$…` lock files Word leaves next to an open document are skipped, and listed in a warning; pass a file to `--docs` directly to include it.
 
@@ -248,4 +254,4 @@ When `--docs` is a folder, hidden files and folders and the `~$…` lock files W
 
 chunklab's own code is [MIT](LICENSE) — permissive on purpose. Runs locally, no telemetry, no phone-home.
 
-**One dependency is not permissive.** PDF support goes through [PyMuPDF](https://pymupdf.readthedocs.io/) via `pymupdf4llm`, which is licensed under the GNU AGPL v3 or a commercial licence from Artifex, and `pip install chunklab` installs it today. If your organisation restricts AGPL software, check that policy before adopting chunklab.
+**PDF support is not permissive, so it is opt-in.** Reading PDFs goes through [PyMuPDF](https://pymupdf.readthedocs.io/) via `pymupdf4llm`, which is licensed under the GNU AGPL v3 or a commercial licence from Artifex. `pip install chunklab` does not install it; `pip install "chunklab[pdf]"` does. If your organisation restricts AGPL software, the plain install keeps PyMuPDF out, and a PDF met without the extra is refused with a one-line message rather than read.

@@ -8,7 +8,7 @@ real 3-point gap from a coin flip. Most comparisons declare a winner anyway. chu
 job is to stop you from doing that.
 
 ```bash
-pip install chunklab
+pip install chunklab            # "chunklab[pdf]" if your documents include PDFs
 chunklab run --docs ./docs --questions questions.yaml
 ```
 
