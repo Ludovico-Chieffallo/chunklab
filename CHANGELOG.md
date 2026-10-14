@@ -50,6 +50,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   were scored under different thresholds. Report schema 1.5.
 
 ### Fixed
+- **A strategy listed twice in the config is refused.** Results are keyed by
+  strategy name, so listing `fixed` twice with two chunk sizes, the natural way to
+  compare them, made the entries overwrite each other: the 64-token `fixed` was
+  reported with the 512-token one's balanced score, and the verdict said `fixed`
+  beat `fixed`. The error says to compare parameter values in separate runs.
 - **A `Config` built in code has the default strategies**, as a config file without
   `strategies:` always did. It used to start with none, and `run_evaluation` returned
   a report with no results and no complaint. An empty strategy list is now refused
