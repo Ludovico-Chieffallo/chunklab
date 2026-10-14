@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-14
+
+This release is about whether a score means what it says. A gold snippet was counted
+as found in a passage with other numbers, in a fragment of itself, and in a chunk of
+another file with the same name. `run` scored question sets that `validate` rejects,
+`check` passed builds it had not checked, and a strategy could be ruled out on thin
+evidence, differently with each seed. Each is fixed below, with what it moved.
+
+**Scores can move.** On the published benchmarks only full QASPER does, in its two
+`semantic` rows; the bundled example's numbers are unchanged, but its verdict keeps
+one more strategy in play. Upgrading:
+
+- **Re-record `check` baselines** with `--update-baseline`: a baseline from 0.4.x is
+  not comparable with this version, and `check` now exits 3 rather than pass.
+- **If your corpus has PDFs**, install the extra: `pip install "chunklab[pdf]"`.
+- A question set with errors that `validate` reports now stops `run`;
+  `--skip-validation` scores it as it is.
+
+The report schema is 1.5: two fields added, none changed.
+
 ### Changed
 - **PDF support is an optional extra: `pip install "chunklab[pdf]"`.** PDFs are read
   with PyMuPDF via `pymupdf4llm`, licensed under the AGPL-3.0 or commercially by
@@ -100,6 +120,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   offered the passage with the wrong figures as the verbatim text to paste. When the
   corpus holds a passage with the snippet's numbers as well, `validate` now points at
   that one, whichever is closer.
+- **The CUAD benchmark conversion widens six spans that stop inside a word**, such as
+  "…August 1, 201" for "2010", and reports them as adjusted. As published, that one
+  states a year the contract does not hold, and the benchmark could not run under the
+  number rule above.
 - **A fragment of the gold snippet no longer counts as the snippet.** rapidfuzz looks
   for the shorter string inside the longer one, so a chunk shorter than the snippet was
   looked for inside the snippet, and any fragment of the answer scored 100. At

@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "chunklab"
-version = "0.4.1"
+version = "0.5.0"
 description = "Tells you whether the difference between chunking strategies is real - on your own documents - before you commit to one."
 readme = "README.md"
 license = "MIT"
