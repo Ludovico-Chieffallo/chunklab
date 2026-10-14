@@ -19,4 +19,5 @@ Upload a document (PDF, DOCX, TXT, MD), enter a few questions with gold snippets
 (`question :: gold snippet`), pick which chunking strategies to compare, and see
 which one retrieves your answers best — with a downloadable HTML report.
 
-Everything runs on CPU with a small local embedding model; no API key needed.
+Everything runs on CPU with a small local embedding model; no API key needed. The Space
+needs `chunklab[demo,pdf]` installed for its upload to accept PDFs.

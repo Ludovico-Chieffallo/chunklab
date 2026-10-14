@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **PDF support is an optional extra: `pip install "chunklab[pdf]"`.** PDFs are read
+  with PyMuPDF via `pymupdf4llm`, licensed under the AGPL-3.0 or commercially by
+  Artifex. chunklab is MIT, and `pip install chunklab` used to install PyMuPDF with
+  it, so an organisation that does not allow AGPL code could only find out from the
+  metadata of what pip had already installed. The plain install no longer brings it
+  in. A PDF met without the extra stops the command with one line that names the
+  extra, before any file is read. **If your corpus has PDFs, install the extra.**
 - **A strategy is ruled out only on evidence against it. The bundled example's verdict
   changes.** An undecided verdict ruled out everything outside the fewest candidates
   whose chances of being best add up to 95%. On a 26-paper corpus that ruled out

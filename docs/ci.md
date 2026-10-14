@@ -87,7 +87,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
-      - run: pip install chunklab
+      - run: pip install chunklab   # "chunklab[pdf]" for a corpus with PDFs
       - uses: actions/cache@v4
         with:
           path: ~/.cache/chunklab
