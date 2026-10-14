@@ -18,7 +18,9 @@ Conversion choices:
 * Only questions with at least one annotated span are kept; CUAD marks absent
   categories `is_impossible`, and there is nothing to retrieve for those.
 * Spans are used verbatim via their `answer_start` offset, so gold text always
-  matches the contract exactly.
+  matches the contract exactly - widened to whole words where an annotated span
+  stops inside one. One stops at "201" of "2010": as published it states a year
+  the contract does not, and a passage with other numbers is never the snippet.
 * Duplicate spans for one question are de-duplicated.
 * Spans shorter than `--min-gold-tokens` are dropped: a two-word clause title
   matches by accident and inflates every strategy equally.
@@ -61,6 +63,19 @@ def fetch_contracts(cache: Path) -> list[dict]:
     return json.loads(extracted.read_text(encoding="utf-8"))["data"]
 
 
+def _whole_words(text: str, start: int, end: int) -> tuple[int, int]:
+    """Widen [start, end) where it stops between two letters or digits.
+
+    Only there: a span that ends at "York" before the full stop ends a word, and
+    widening it would only make it harder to find in a chunk that ends at "York".
+    """
+    while 0 < start < len(text) and text[start - 1].isalnum() and text[start].isalnum():
+        start -= 1
+    while 0 < end < len(text) and text[end - 1].isalnum() and text[end].isalnum():
+        end += 1
+    return start, end
+
+
 def _safe_id(title: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]", "_", title)[:80]
 
@@ -81,10 +96,14 @@ def convert_contract(
         spans: list[str] = []
         for answer in qa["answers"]:
             start = answer["answer_start"]
-            text = context[start : start + len(answer["text"])]
-            if text != answer["text"]:
+            end = start + len(answer["text"])
+            if context[start:end] != answer["text"]:
                 stats.drop("span offset did not match its text")
                 continue
+            whole = _whole_words(context, start, end)
+            if whole != (start, end):
+                stats.adjust("span stopped inside a word; widened to the whole word")
+            text = context[whole[0] : whole[1]]
             if count_tokens(text) < min_gold_tokens:
                 stats.drop(f"span shorter than {min_gold_tokens} tokens (matches by accident)")
                 continue
