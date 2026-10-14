@@ -640,6 +640,7 @@ def run_evaluation(
             "embedding_prefixes": config.embedding.prefixes,
             "detected_languages": corpus_languages,
             "top_k": k,
+            "fuzzy_threshold": config.eval.fuzzy_threshold,
             "ranking_metric": config.eval.ranking_metric,
             "retrieval_modes": modes,
             "seed": config.eval.seed,

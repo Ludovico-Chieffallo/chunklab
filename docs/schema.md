@@ -8,7 +8,7 @@
 of an existing field bumps MAJOR and requires a deprecation entry in the
 [CHANGELOG](https://github.com/Ludovico-Chieffallo/chunklab/blob/main/CHANGELOG.md). Consumers should tolerate unknown fields.
 
-Current version: **1.4**.
+Current version: **1.5**.
 
 ## Top level
 
@@ -34,6 +34,7 @@ Current version: **1.4**.
 | `embedding_model` | str | Embedding model name as configured. |
 | `embedding_model_revision` | str \| null | Commit hash of the locally cached Hugging Face snapshot when unambiguously resolvable; `null` otherwise (e.g. fake backend, ambiguous cache). |
 | `top_k` | int | Retrieval cutoff used everywhere. |
+| `fuzzy_threshold` | float | *(1.5)* Similarity above which a gold snippet counts as found by fuzzy matching (`eval.fuzzy_threshold`). `chunklab check` refuses to compare two runs scored under different thresholds. |
 | `ranking_metric` | str | Metric used to rank `strategy_results`. |
 | `retrieval_modes` | array[str] | *(1.3)* Retrievers evaluated (`dense`, `bm25`, `hybrid`). More than one means `strategy_results` is a strategy x retriever matrix. |
 | `seed` | int | *(1.1)* RNG seed used for bootstrap resampling. |

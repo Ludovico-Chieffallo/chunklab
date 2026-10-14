@@ -219,6 +219,11 @@ def check(
     update_baseline: bool = typer.Option(
         False, "--update-baseline", help="Overwrite the baseline with this run and exit 0."
     ),
+    allow_unpaired: bool = typer.Option(
+        False,
+        "--allow-unpaired",
+        help="Compare the raw numbers when the runs cannot be paired, instead of exiting 3.",
+    ),
     skip_validation: bool = typer.Option(
         False,
         "--skip-validation",
@@ -229,6 +234,9 @@ def check(
 
     A build fails when the drop is larger than sampling noise explains — the same
     paired bootstrap the recommendation uses. `--max-drop` adds a blunt floor.
+    Exit codes: 0 no regression, 1 regression, 2 unusable input, 3 the run cannot
+    be compared with the baseline (other questions, top_k, fuzzy threshold or
+    chunklab version).
     """
     from chunklab.check import compare, load_baseline
     from chunklab.config import load_config
@@ -252,17 +260,33 @@ def check(
         console.print(f"Baseline written to [bold]{escape(str(baseline))}[/bold].")
         return
 
-    outcome = compare(reference, report, strategy=strategy, max_drop=max_drop)
-
-    console.print(
-        f"\n[bold]{escape(outcome.strategy)} + {escape(outcome.retriever)}[/bold]: "
-        f"recall {outcome.baseline_recall:.3f} → {outcome.current_recall:.3f} "
-        f"({outcome.difference:+.3f})"
+    outcome = compare(
+        reference, report, strategy=strategy, max_drop=max_drop, allow_unpaired=allow_unpaired
     )
+
+    tracked = f"[bold]{escape(outcome.strategy)} + {escape(outcome.retriever)}[/bold]"
+    if outcome.current_recall is not None:
+        console.print(
+            f"\n{tracked}: recall {outcome.baseline_recall:.3f} → {outcome.current_recall:.3f} "
+            f"({outcome.difference:+.3f})"
+        )
     if outcome.ci95:
         console.print(f"paired 95% CI [{outcome.ci95[0]:+.3f}, {outcome.ci95[1]:+.3f}]")
     for note in outcome.notes:
         console.print(f"[yellow]Note:[/yellow] {escape(note)}")
+
+    if outcome.status == "not_comparable":
+        # Fail closed: a pass here used to mean "nothing was checked".
+        console.print("[red]Not comparable with the baseline:[/red]")
+        for reason in outcome.not_comparable:
+            console.print(f"  - {escape(reason)}")
+        console.print(
+            "Re-record the baseline with --update-baseline, or pass --allow-unpaired to "
+            "compare the raw numbers anyway."
+        )
+        raise typer.Exit(3)
+    for reason in outcome.not_comparable:  # allowed: say what the raw numbers mean
+        console.print(f"[yellow]Unpaired:[/yellow] {escape(reason)}")
 
     if outcome.ok:
         console.print("[green]No regression detected.[/green]")

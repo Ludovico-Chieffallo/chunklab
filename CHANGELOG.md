@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as `validate` lists them, and the command exits 2 without writing a report or a
   baseline. `--skip-validation` (and `skip_validation=True` in `evaluate`) scores the
   set as it is. Warnings do not stop a run.
+- **`check` fails closed: a run it cannot compare with the baseline exits 3.** It
+  printed "No regression detected." in green and exited 0 when the question set had
+  changed, so in CI the gate stayed off until someone re-recorded the baseline. Two
+  runs are now not comparable when the questions, `top_k`, the fuzzy threshold or the
+  chunklab version differ, or when the tracked strategy is missing from the run.
+  `--allow-unpaired` restores the raw comparison. A change to the corpus, the
+  embedding model or its revision, or the tracked strategy's parameters is gated as
+  before, and now named in a note. **A baseline recorded with 0.4.x is not comparable
+  with 0.5.0**, whose scoring changed: re-record it.
+
+### Added
+- `corpus_summary.fuzzy_threshold` in the report, so `check` can tell when two runs
+  were scored under different thresholds. Report schema 1.5.
 
 ### Fixed
 - **A `Config` built in code has the default strategies**, as a config file without
