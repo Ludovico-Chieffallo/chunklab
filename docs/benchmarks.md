@@ -88,7 +88,10 @@ as a hit, inflating every strategy equally. They are dropped by the 5-token floo
 
 ## Results
 
-`BAAI/bge-small-en-v1.5`, k=5, default strategies, chunklab schema 1.2.
+`BAAI/bge-small-en-v1.5`, k=5, default strategies. First measured with chunklab schema
+1.2, and re-measured with 0.5.0, which changed how a gold snippet is matched: QASPER at 30
+papers and CUAD come out identical to three decimals, and full QASPER moves in its two
+`semantic` rows only, for the reason given under its table.
 
 **QASPER** — 30 papers, 70 questions:
 
@@ -111,10 +114,17 @@ test the estimate above, and it is the most informative result here:
 | `structure` | **0.175** | 0.175 | **1378** | 39% |
 | `recursive` | 0.149 | 0.175 | 2107 | 3% |
 | `fixed` | 0.120 | 0.159 | 2456 | 3% |
-| `semantic_no_floor` | 0.124 | 0.150 | 2084 | 35% |
-| `semantic` | 0.098 | 0.146 | 2718 | 0% |
+| `semantic_no_floor` | 0.119 | 0.145 | 2084 | 35% |
+| `semantic` | 0.096 | 0.145 | 2718 | 0% |
 
 `structure − recursive = +0.000`, 95% CI [−0.022, +0.023].
+
+The two `semantic` rows read 0.124 / 0.150 and 0.098 / 0.146 before 0.5.0. QASPER's gold
+snippets are whole paragraphs, and a chunk shorter than its snippet used to be looked for
+*inside* the snippet, so a fragment of the paragraph counted as the paragraph: 5 slots
+of `semantic_no_floor`, whose chunks are 35% tiny, and 2 of `semantic`. 0.5.0 counts a
+chunk shorter than the snippet only when it is the whole snippet to within the fuzzy
+threshold.
 
 **The tie gate was right and the point estimate was noise.** At 70 questions `recursive`
 led by +0.034 and the gate refused to call it; at 889 questions the two are *identical* to
@@ -124,10 +134,14 @@ have shipped a recommendation built on nothing.
 And the decision is still available — on the other axis. Identical recall, but `structure`
 retrieves **35% fewer tokens** (1378 vs 2107). That is what the report now says:
 
-> No winner: 'structure' and 'recursive' are statistically indistinguishable on 889 scored
-> questions (recall difference +0.000, 95% CI [−0.022, +0.023] includes zero). The
+> No single winner: 'structure' leads but is the best of the 5 strategies compared in only
+> 50% of bootstrap resamples over 889 scored questions. 3 cannot be ruled out
+> ('structure', 'recursive', 'fixed'); 'semantic_no_floor' (0%), 'semantic' (0%) can. The
 > difference is too small for any realistic number of questions to separate them, so
-> choose on cost instead: 'structure' retrieves 1378 tokens per question against 2107.
+> choose on cost instead: 'structure' retrieves 1378 tokens per question against 2456.
+
+The 2456 is `fixed`, the costliest strategy still in play; against `recursive` alone it is
+the 1378 against 2107 above.
 
 This run also exposed a defect: the sample-size estimator projected **1.4 billion**
 questions, because the estimate grows with 1/diff² and the difference was 1.8e-5. True,
