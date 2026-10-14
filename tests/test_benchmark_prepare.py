@@ -161,6 +161,23 @@ def test_cuad_span_is_taken_from_the_annotated_offset():
     assert questions[0]["gold_snippets"] == [span]
 
 
+def test_cuad_span_that_cuts_a_word_is_widened_to_the_whole_word():
+    """CUAD's annotated span for one contract stops at "201" of "2010". Taken as is,
+    it states a year the contract does not, and since 0.5.0 a passage with other
+    numbers is never the snippet: the question would score zero everywhere."""
+    context = "The term begins on January 1, 2010 and ends on December 31, 2014 for both parties."
+    cut = "The term begins on January 1, 201"
+    contract = _contract(
+        [{"question": "Effective date?", "answers": [{"text": cut, "answer_start": 0}]}], context
+    )
+    stats = ConversionStats()
+
+    _, questions = prepare_cuad.convert_contract(contract, stats, min_gold_tokens=5)
+
+    assert questions[0]["gold_snippets"] == ["The term begins on January 1, 2010"]
+    assert sum(stats.adjusted.values()) == 1
+
+
 def test_cuad_impossible_category_is_dropped():
     contract = _contract(
         [{"question": "Governing Law?", "answers": [], "is_impossible": True}], CONTEXT

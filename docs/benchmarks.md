@@ -67,6 +67,11 @@ not identical to the benchmark as published, and the difference has to be visibl
 | 41 | span shorter than 5 tokens |
 | 4 | no span survived filtering |
 
+Six kept spans start or stop one character inside a word, and are widened to the whole
+word: `…the "Partie` becomes `…the "Parties`, and `…August 1, 201` becomes `…August 1,
+2010`. As published, that last one states a year the contract does not, and since 0.5.0
+a passage with other numbers never counts as the snippet.
+
 Other choices that affect the numbers: QASPER evidence is taken from **one** annotator (the
 first citing body text) rather than the union across annotators, because annotators
 disagree about which paragraphs support an answer and unioning would inflate `gold_total`

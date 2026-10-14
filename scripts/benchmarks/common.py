@@ -50,10 +50,15 @@ class ConversionStats:
     questions_seen: int = 0
     questions_kept: int = 0
     dropped: dict[str, int] = field(default_factory=dict)
+    #: Kept, but not as published: each repair, said rather than made silently.
+    adjusted: dict[str, int] = field(default_factory=dict)
     gold_snippets: int = 0
 
     def drop(self, reason: str, count: int = 1) -> None:
         self.dropped[reason] = self.dropped.get(reason, 0) + count
+
+    def adjust(self, reason: str, count: int = 1) -> None:
+        self.adjusted[reason] = self.adjusted.get(reason, 0) + count
 
     def render(self) -> str:
         lines = [
@@ -63,10 +68,11 @@ class ConversionStats:
             f" ({self.questions_kept / max(self.questions_seen, 1):.1%})",
             f"gold snippets:    {self.gold_snippets}",
         ]
-        if self.dropped:
-            lines.append("dropped:")
-            for reason, count in sorted(self.dropped.items(), key=lambda kv: -kv[1]):
-                lines.append(f"  {count:>6}  {reason}")
+        for title, counts in (("dropped:", self.dropped), ("adjusted:", self.adjusted)):
+            if counts:
+                lines.append(title)
+                for reason, count in sorted(counts.items(), key=lambda kv: -kv[1]):
+                    lines.append(f"  {count:>6}  {reason}")
         return "\n".join(lines)
 
 
