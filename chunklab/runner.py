@@ -466,6 +466,18 @@ def run_evaluation(
             "no strategies to evaluate: the config lists none. Leave 'strategies' out to "
             "compare the default five, or name at least one"
         )
+    # Results are keyed by strategy name, so a second `fixed` with another
+    # chunk_size took the first one's balanced score, and the verdict said that
+    # `fixed` beat `fixed`.
+    repeated = [n for n, c in Counter(s.name for s in config.strategies).items() if c > 1]
+    if repeated:
+        name = repeated[0]
+        times = sum(1 for s in config.strategies if s.name == name)
+        raise InputError(
+            f"strategy '{name}' is listed {times} times in the config; results are keyed by "
+            "strategy name, so the entries would overwrite each other. To compare parameter "
+            "values, such as chunk sizes, evaluate each one in separate runs"
+        )
     for strategy in config.strategies:
         check_strategy_params(strategy.name, strategy.params)
 
