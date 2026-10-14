@@ -24,6 +24,14 @@ which. A question set with errors that `chunklab validate` would report exits `2
 before anything is evaluated, with each error listed: a baseline recorded from a broken
 set would gate every later build on the mistake. `--skip-validation` scores it anyway.
 
+Exit code `3` means the run cannot be compared with the baseline, so nothing was checked:
+the questions changed, or `top_k`, the fuzzy threshold, or the chunklab version that scored
+them — a new version can score the same retrieval differently, as 0.5.0 does. Until 0.5.0
+this case printed "No regression detected." and exited `0`, which left the gate off
+without anyone knowing. When the change is intended, re-record the baseline with
+`--update-baseline`. `--allow-unpaired` compares the raw numbers instead, with `--max-drop`
+as the only gate.
+
 ## What makes a build fail
 
 **The default gate is the paired bootstrap over your questions** — the same test that
@@ -36,8 +44,10 @@ noise either. One question out of forty flipping is not a regression; it is a qu
 flipping.
 
 Pairing requires the same questions on both sides, which is why the report records
-`questions_sha256`. If you edit `questions.yaml`, the two runs are no longer paired,
-chunklab says so, and the statistical gate is skipped rather than faked.
+`questions_sha256`. If you edit `questions.yaml`, the two runs are no longer paired, and
+`check` exits `3` rather than fake a test. A change to what is measured — the corpus, the
+embedding model or its revision, a strategy's parameters — is what the gate is for: it is
+compared as usual, and named in a note so the result can be read.
 
 ## When you want a blunt floor as well
 
@@ -47,7 +57,8 @@ chunklab check ... --max-drop 0.05
 
 `--max-drop` fails on the raw difference regardless of significance. It is off by default,
 and it is the right tool when the operational cost of a drop matters more than the
-evidence for it — or when the question set changed and there is no paired test to run.
+evidence for it — or, with `--allow-unpaired`, when the question set changed and there is
+no paired test to run.
 
 Both gates can fire; the output names whichever did.
 
