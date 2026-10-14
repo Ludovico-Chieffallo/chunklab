@@ -86,14 +86,6 @@ class OutputConfig(BaseModel):
     dir: str = "./chunklab_report"
 
 
-class Config(BaseModel):
-    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
-    retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
-    eval: EvalConfig = Field(default_factory=EvalConfig)
-    strategies: list[StrategyConfig] = Field(default_factory=list)
-    output: OutputConfig = Field(default_factory=OutputConfig)
-
-
 def default_strategies() -> list[StrategyConfig]:
     return [
         StrategyConfig(name="fixed", params={"chunk_size": 512, "overlap": 64}),
@@ -108,6 +100,16 @@ def default_strategies() -> list[StrategyConfig]:
         ),
         StrategyConfig(name="structure", params={"max_tokens": 800}),
     ]
+
+
+class Config(BaseModel):
+    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
+    retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
+    eval: EvalConfig = Field(default_factory=EvalConfig)
+    # The same five a config file without `strategies:` gets: a Config built in
+    # code used to start with none, and evaluated nothing without saying so.
+    strategies: list[StrategyConfig] = Field(default_factory=default_strategies)
+    output: OutputConfig = Field(default_factory=OutputConfig)
 
 
 def default_config() -> Config:

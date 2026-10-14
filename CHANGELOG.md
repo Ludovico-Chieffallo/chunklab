@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   set as it is. Warnings do not stop a run.
 
 ### Fixed
+- **A `Config` built in code has the default strategies**, as a config file without
+  `strategies:` always did. It used to start with none, and `run_evaluation` returned
+  a report with no results and no complaint. An empty strategy list is now refused
+  with an error.
 - **Two files with the same name are two documents. Scores can move** on a corpus
   that had such a pair. A document's id was its file name without the extension, so
   `2023/msa.md` and `2024/msa.md` were both `msa`, and so were `report.pdf` and

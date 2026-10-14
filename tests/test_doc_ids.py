@@ -107,6 +107,7 @@ def test_both_files_are_evaluated_as_separate_documents(tmp_path):
     report = evaluate(root, questions, config)
 
     assert report.corpus_summary["documents"] == ["2023/msa.md", "2024/msa.md"]
+    assert report.strategy_results
     for result in report.strategy_results:
         for question in result.per_question:
             chunk_ids = [rc.chunk.id for rc in question.retrieved]
