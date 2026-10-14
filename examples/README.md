@@ -3,6 +3,7 @@
 A ready-to-run corpus so you can try chunklab in one command:
 
 ```bash
+pip install "chunklab[pdf]"   # one of the five documents is a PDF
 chunklab run --docs examples/corpus --questions examples/questions.yaml
 ```
 

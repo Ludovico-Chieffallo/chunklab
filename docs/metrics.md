@@ -136,6 +136,7 @@ context penalty prices retrievers against each other too, not just strategies.
 ### Reproducing the tables below
 
 ```bash
+pip install "chunklab[pdf]"   # the example corpus includes a PDF
 chunklab run --docs examples/corpus --questions examples/questions.yaml --compare-retrievers
 ```
 

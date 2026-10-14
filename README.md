@@ -50,6 +50,7 @@ The first run downloads the embedding model (~130 MB) once and caches it.
 
 ```bash
 # clone the repo to get the example corpus, or point --docs at your own files
+pip install "chunklab[pdf]"   # the example corpus includes a PDF
 chunklab run --docs examples/corpus --questions examples/questions.yaml
 ```
 
