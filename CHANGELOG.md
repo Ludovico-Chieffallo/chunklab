@@ -89,8 +89,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before it (47%, 52% and 56%), by three cells of the matrix, the leading one among
   them. Every number in a snippet must now appear in the matching passage as written
   and in the same order. Exact containment can no longer cut a number in half either:
-  "5 business days" is not found in "15 business days". Snippets without numbers score
-  exactly as before, and every result on the bundled example stays the same.
+  "5 business days" is not found in "15 business days". A number the chunk cannot
+  hold is not compared: when the chunker cut a long answer and part of it is in the
+  next chunk, the missing part's numbers are missing, not different, and the answer
+  is judged as one without numbers would be. Snippets without numbers score exactly as
+  before, and so does every result on the bundled example and on the published QASPER
+  and CUAD benchmarks.
 - **`validate` reports such a snippet as a `numbers_differ` error** that names both
   sets of numbers. Before, it called the match a harmless `fuzzy_only` drift and
   offered the passage with the wrong figures as the verbatim text to paste. When the
@@ -98,12 +102,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that one, whichever is closer.
 - **A fragment of the gold snippet no longer counts as the snippet.** rapidfuzz looks
   for the shorter string inside the longer one, so a chunk shorter than the snippet was
-  looked for inside the snippet, and any fragment of the answer scored 100. At the
-  default sizes no chunk is that short, and nothing moves on the bundled example or on
-  a 26-paper corpus. At `chunk_size: 24` on the bundled example, 15 of 63 hits were
-  fragments: the 42-character "are retried twice with exponential backoff" counted as
-  a 216-character answer. **Scores can move** for small chunk sizes and for
-  sentence-sized custom splitters, whose recall this inflated. A chunk shorter than the
+  looked for inside the snippet, and any fragment of the answer scored 100. At
+  `chunk_size: 24` on the bundled example, 15 of 63 hits were fragments: the
+  42-character "are retried twice with exponential backoff" counted as a
+  216-character answer. **Scores can move** wherever chunks get shorter than gold
+  snippets: small chunk sizes, sentence-sized custom splitters, and long snippets.
+  At the default sizes nothing moves on the bundled example or on a 26-paper corpus,
+  but on the full QASPER benchmark, whose gold snippets are whole paragraphs,
+  `semantic_no_floor` drops from 0.150 to 0.145 recall, `semantic` from 0.146 to
+  0.145, and `recursive` by one slot of 889 questions. A chunk shorter than the
   snippet now counts only when it is the whole snippet to within the fuzzy threshold,
   such as a table row that lost its closing `|`. An answer split across two such
   chunks is now reported as split, where before each half counted as found.

@@ -5,6 +5,7 @@ import re
 from typing import NamedTuple
 
 from rapidfuzz import fuzz
+from rapidfuzz.distance import Indel
 
 from chunklab.models import GoldSlot, Question, QuestionResult, RetrievedChunk
 
@@ -38,9 +39,13 @@ def same_numbers(snippet: str, passage: str) -> bool:
     Extra numbers in the passage are fine: a window widened to whole words can
     pick one up at either edge.
     """
+    return _in_order(numbers_in(snippet), passage)
+
+
+def _in_order(numbers: list[str], passage: str) -> bool:
     remaining = iter(numbers_in(passage))
     # `in` advances the iterator, so each number is looked for after the previous one.
-    return all(number in remaining for number in numbers_in(snippet))
+    return all(number in remaining for number in numbers)
 
 
 def snap_to_words(text: str, start: int, end: int) -> tuple[int, int]:
@@ -61,9 +66,37 @@ class Match(NamedTuple):
     numbers_agree: bool
 
 
+def _numbers_within_reach(snippet: str, text: str, start: int, end: int) -> list[str]:
+    """The snippet's numbers that the text could hold at [start, end).
+
+    A window that begins at the very start of the text, or ends at its very
+    end, can be shorter than the snippet: the chunker cut the answer, and part
+    of it is in the next chunk. The numbers in that part are missing, not
+    different, and without this a split answer counted as found at 90%
+    similarity unless a digit happened to fall in the missing part: on a full
+    QASPER run, all 11 slots the number rule took were exactly that.
+
+    The part hangs off the edge only when the window's first (or last)
+    character is already matched. A window with characters of its own there -
+    "30 days" against "14 days" - states a number, and everything is compared.
+    """
+    spans = list(_NUMBER_RE.finditer(snippet))
+    window = text[start:end]
+    at_start, at_end = start == 0, end == len(text)
+    if not spans or len(window) >= len(snippet) or not (at_start or at_end):
+        return [m.group() for m in spans]
+    matched = [op for op in Indel.opcodes(snippet, window) if op.tag == "equal"]
+    if not matched:
+        return [m.group() for m in spans]
+    lo = matched[0].src_start if at_start and matched[0].dest_start == 0 else 0
+    hi = matched[-1].src_end if at_end and matched[-1].dest_end == len(window) else len(snippet)
+    return [m.group() for m in spans if m.end() > lo and m.start() < hi]
+
+
 def _agrees(snippet: str, text: str, start: int, end: int) -> bool:
+    compared = _numbers_within_reach(snippet, text, start, end)
     start, end = snap_to_words(text, start, end)
-    return same_numbers(snippet, text[start:end])
+    return _in_order(compared, text[start:end])
 
 
 def exact_occurrences(snippet: str, text: str) -> list[int]:
