@@ -24,7 +24,15 @@ from chunklab.language import (
     model_language_scope,
 )
 from chunklab.loaders.registry import load_documents
-from chunklab.models import Document, EvalReport, Question, StrategyResult
+from chunklab.models import (
+    AxisVerdict,
+    Document,
+    EvalReport,
+    Margin,
+    Question,
+    StrategyResult,
+    Verdict,
+)
 from chunklab.retrieval.registry import make_retrievers
 from chunklab.text_utils import count_tokens
 
@@ -177,20 +185,14 @@ def _paired_gap(
     return diff, ci, len(a)
 
 
-def _tie_advice(
-    plausible: list[StrategyResult],
-    axis: _Axis,
-    gap: tuple[float, tuple[float, float], int] | None,
-) -> str:
+def _tie_advice(plausible: list[StrategyResult], axis: _Axis, needed: int | None) -> str:
     """What to do about an undecided axis: gather evidence, or decide on cost.
 
     `plausible` is the set that could not be ruled out, so the cost comparison
     is made among real candidates rather than between whichever two happened to
-    sort first.
+    sort first. `needed` is the estimate of questions that would separate the
+    top two, None when no realistic number would.
     """
-    from chunklab.eval.significance import estimate_questions_to_separate
-
-    needed = estimate_questions_to_separate(*(gap[2], gap[0], gap[1])) if gap else None
     if needed:
         return (
             f" Roughly {needed} scored questions would be needed to separate the top two"
@@ -254,12 +256,12 @@ def _undecided(
     axis: _Axis,
     num_scored: int,
     chances: list[float],
-    gap: tuple[float, tuple[float, float], int] | None,
-    config: Config,
+    out: set[int],
+    needed: int | None,
 ) -> str:
     """The verdict when no candidate is clearly best, said as informatively as
-    the evidence allows."""
-    keep = set(range(len(ranked))) - _ruled_out(ranked, chances, config)
+    the evidence allows. `out` holds the indices `_ruled_out` rejected."""
+    keep = set(range(len(ranked))) - out
     names = [axis.name(r) for r in ranked]
     plausible = [names[i] for i in range(len(names)) if i in keep]
     excluded = [f"'{names[i]}' ({chances[i]:.0%})" for i in range(len(names)) if i not in keep]
@@ -277,13 +279,13 @@ def _undecided(
         )
     else:
         text += f" No {axis.choice} here can be ruled out."
-    return text + _tie_advice([ranked[i] for i in sorted(keep)], axis, gap)
+    return text + _tie_advice([ranked[i] for i in sorted(keep)], axis, needed)
 
 
 def _verdict(
     ranked: list[StrategyResult], config: Config, num_scored: int, axis: _Axis
-) -> tuple[str, bool]:
-    """The gated sentence for one axis, and whether it named a winner.
+) -> tuple[str, AxisVerdict]:
+    """The gated sentence for one axis, and the same decision as data.
 
     The gate is the leader's probability of actually being best, not a pairwise
     interval between the top two. Sorting k candidates and then testing the
@@ -300,16 +302,38 @@ def _verdict(
     metric_attr = "balanced_score" if metric == "balanced" else metric
     metric_label = metric.replace("_at_k", f"@{config.retrieval.top_k}").replace("_", " ")
 
+    from chunklab.eval.significance import (
+        SELECTION_CONFIDENCE,
+        estimate_questions_to_separate,
+        probability_best,
+    )
+
+    names = [axis.name(r) for r in ranked]
     gap = _paired_gap(ranked[0], ranked[1], config) if len(ranked) > 1 else None
     scores = [_per_question_recalls(r) for r in ranked]
-    if len(ranked) > 1 and scores[0] and len({len(s) for s in scores}) == 1:
-        from chunklab.eval.significance import SELECTION_CONFIDENCE, probability_best
-
+    chances: list[float] | None = None
+    if len(ranked) == 1:
+        chances = [1.0]
+    elif scores[0] and len({len(s) for s in scores}) == 1:
         chances = probability_best(
             scores, resamples=config.eval.bootstrap_resamples, seed=config.eval.seed
         )
-        if chances[0] < SELECTION_CONFIDENCE:
-            return _undecided(ranked, axis, num_scored, chances, gap, config), False
+    decided = chances is None or chances[0] >= SELECTION_CONFIDENCE
+    out = _ruled_out(ranked, chances, config) if chances and len(ranked) > 1 else set()
+    needed = estimate_questions_to_separate(gap[2], gap[0], gap[1]) if gap and not decided else None
+    structured = AxisVerdict(
+        axis=axis.subject,
+        decided=decided,
+        winner=names[0] if decided else None,
+        leader=names[0],
+        probability_best=dict(zip(names, chances, strict=True)) if chances else {},
+        in_play=[name for i, name in enumerate(names) if i not in out],
+        ruled_out=[names[i] for i in sorted(out)],
+        margin=Margin(runner_up=names[1], difference=gap[0], ci95=gap[1]) if gap else None,
+        questions_to_separate=needed,
+    )
+    if not decided:
+        return _undecided(ranked, axis, num_scored, chances, out, needed), structured
 
     params = ", ".join(f"{key}={val}" for key, val in best.config.items())
     sentence = (
@@ -324,15 +348,23 @@ def _verdict(
             f", beating '{axis.name(ranked[1])}' by {diff:+.3f} recall"
             f" (95% CI [{ci[0]:+.3f}, {ci[1]:+.3f}])"
         )
-    return sentence + ".", True
+    return sentence + ".", structured
 
 
 def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scored: int) -> str:
+    return _recommend(ranked, config, num_scored)[0]
+
+
+def _recommend(
+    ranked: list[StrategyResult], config: Config, num_scored: int
+) -> tuple[str, Verdict | None]:
+    """The recommendation in English, and the same decision as data."""
     if not ranked:
-        return "No strategies were evaluated."
+        return "No strategies were evaluated.", None
 
     if len({r.retriever for r in ranked}) == 1:
-        return _chunking_block(ranked, config, num_scored)
+        text, chunking = _chunking_block(ranked, config, num_scored)
+        return text, Verdict(chunking=chunking)
 
     # A matrix ranks cells, and the top two routinely differ on one axis only.
     # On a real run both were 'recursive', so the report compared two retrievers
@@ -341,27 +373,31 @@ def _build_recommendation(ranked: list[StrategyResult], config: Config, num_scor
     # best performer - a value picked from these same data, which the text says
     # rather than presenting the pairing as a general fact.
     blocks = []
+    verdicts: dict[str, AxisVerdict] = {}
     for axis, other in ((CHUNKING, RETRIEVAL), (RETRIEVAL, CHUNKING)):
         held = _best_on(ranked, other)
         slice_ = [r for r in ranked if other.name(r) == held]
-        body = (
+        body, structured = (
             _chunking_block(slice_, config, num_scored)
             if axis is CHUNKING
-            else _verdict(slice_, config, num_scored, axis)[0]
+            else _verdict(slice_, config, num_scored, axis)
         )
+        verdicts[axis.subject] = structured.model_copy(update={"held": held})
         competitors = len({other.name(r) for r in ranked})
         blocks.append(
             f"{axis.heading} — {body} Measured under '{held}', the best of the"
             f" {competitors} {other.choices} compared and itself chosen from these data."
         )
-    return "\n\n".join(blocks)
+    return "\n\n".join(blocks), Verdict(**verdicts)
 
 
-def _chunking_block(ranked: list[StrategyResult], config: Config, num_scored: int) -> str:
+def _chunking_block(
+    ranked: list[StrategyResult], config: Config, num_scored: int
+) -> tuple[str, AxisVerdict]:
     """The chunking verdict plus the diagnostics that explain it."""
-    verdict, decided = _verdict(ranked, config, num_scored, CHUNKING)
-    if not decided:
-        return verdict
+    verdict, structured = _verdict(ranked, config, num_scored, CHUNKING)
+    if not structured.decided:
+        return verdict, structured
 
     best, worst = ranked[0], ranked[-1]
     metric = config.eval.ranking_metric
@@ -399,7 +435,7 @@ def _chunking_block(ranked: list[StrategyResult], config: Config, num_scored: in
             f"the embedding model's max sequence length and may be truncated at embed time."
         )
 
-    return " ".join(lines)
+    return " ".join(lines), structured
 
 
 def run_evaluation(
@@ -655,6 +691,7 @@ def run_evaluation(
 
         viz = build_doc_viz(documents[0], scored_questions, chunks_by_strategy).model_dump()
 
+    recommendation, verdict = _recommend(results, config, len(scored_questions))
     return EvalReport(
         corpus_summary={
             "num_documents": len(documents),
@@ -681,7 +718,8 @@ def run_evaluation(
             "questions_sha256": _questions_sha256(scored_questions),
         },
         strategy_results=results,
-        recommendation=_build_recommendation(results, config, len(scored_questions)),
+        recommendation=recommendation,
+        verdict=verdict,
         warnings=warnings,
         generated_at=datetime.now(UTC).isoformat(timespec="seconds"),
         viz=viz,

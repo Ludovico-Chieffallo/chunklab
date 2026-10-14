@@ -17,7 +17,8 @@ Current version: **1.5**.
 | `schema_version` | str | This contract's version. |
 | `corpus_summary` | object | Run provenance and inputs summary (below). |
 | `strategy_results` | array | One entry per strategy, **ranked best-first** by `corpus_summary.ranking_metric` (ties: higher `mrr`, then higher `hit_rate_at_k`, then lower `chunk_health.pct_tiny`). |
-| `recommendation` | str | Plain-language recommendation naming the winner and the main diagnostic reasons. |
+| `recommendation` | str | The verdict in English. It names a winner only when one clears the selection bar, which most runs do not; otherwise it says what is still in play, what is ruled out and what would settle it. A program should read `verdict` instead. |
+| `verdict` | object \| null | *(1.5)* The same decision as data, below. `null` in reports written before 1.5. |
 | `warnings` | array[str] | Non-fatal issues (e.g. questions skipped for missing gold snippets). |
 | `generated_at` | str | UTC ISO-8601 timestamp. The only field expected to differ between two identical runs. |
 | `viz` | object \| null | Chunk-boundary visualization data for one sample document (consumed by the HTML report; same fields as `report/viz.py` models). |
@@ -88,6 +89,30 @@ Current version: **1.5**.
 | `split_across_chunks` | bool | No single chunk contained a missing gold snippet, but joining two adjacent retrieved chunks would — the chunker severed the answer. |
 | `gold_found_count` / `gold_total` | int | Gold snippets found / total for this question. |
 | `found_gold_indices` | array[int] | *(1.1)* Indices (into the question's `gold_snippets`) of the snippets found. |
+
+## `verdict` *(1.5)*
+
+`chunking` always, and `retrieval` when retrievers were compared (`null` otherwise). Each
+is an axis verdict:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `axis` | str | `chunking` or `retrieval`. |
+| `decided` | bool | The leader came out best in at least 90% of paired bootstrap resamples (`SELECTION_CONFIDENCE`), and is then `winner`. |
+| `winner` | str \| null | The strategy or retriever to use; `null` when undecided. |
+| `leader` | str | Ranked first, whether or not it is the winner. |
+| `probability_best` | object | Name → share of paired bootstrap resamples it came out best in. Sums to 1. |
+| `in_play` | array[str] | Candidates the evidence does not rule out, best-first. A candidate is ruled out only on evidence against it, so a decided axis can list more than its winner. |
+| `ruled_out` | array[str] | Outside the fewest candidates whose `probability_best` adds up to 95%, **and** at least as good as the leader in under 2.5% of paired resamples. |
+| `margin` | object \| null | `runner_up`, `difference` (leader minus runner-up, mean per-question recall) and its paired `ci95`. |
+| `questions_to_separate` | int \| null | Rough number of scored questions that would separate the top two; `null` when decided, or when no realistic number would. |
+| `held` | str \| null | With a matrix, the value of the other axis this one was measured under: the best performer there, itself chosen from these data. `null` with one retriever. |
+
+A CI step that only needs to know whether there is a winner:
+
+```bash
+jq -e '.verdict.chunking.decided' chunklab_report/report.json
+```
 
 ## Determinism guarantee
 

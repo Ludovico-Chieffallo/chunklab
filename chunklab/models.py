@@ -106,11 +106,53 @@ class StrategyResult(BaseModel):
     per_question: list[QuestionResult] = Field(default_factory=list)
 
 
+class Margin(BaseModel):
+    """The leader's lead over the runner-up in mean per-question recall, paired."""
+
+    runner_up: str
+    difference: float
+    ci95: tuple[float, float]
+
+
+class AxisVerdict(BaseModel):
+    """What one axis of the comparison decided, for a program to read.
+
+    `EvalReport.recommendation` says the same in English; a CI job that wants to
+    know whether there is a winner should not have to parse it.
+    """
+
+    axis: Literal["chunking", "retrieval"]
+    #: True when the leader came out best in at least SELECTION_CONFIDENCE of
+    #: resamples, and is then `winner`.
+    decided: bool
+    winner: str | None = None
+    leader: str  # ranked first, whether or not it is the winner
+    #: Name -> share of paired bootstrap resamples it came out best in.
+    probability_best: dict[str, float] = Field(default_factory=dict)
+    #: Not ruled out, best-first. A candidate is ruled out only on evidence
+    #: against it, so a decided axis can still have more than its winner here.
+    in_play: list[str] = Field(default_factory=list)
+    ruled_out: list[str] = Field(default_factory=list)
+    margin: Margin | None = None
+    #: Rough number of scored questions that would separate the top two; None
+    #: when decided, or when no realistic number would.
+    questions_to_separate: int | None = None
+    #: In a strategy x retriever matrix, the value of the other axis this one
+    #: was measured under - itself chosen from the same data.
+    held: str | None = None
+
+
+class Verdict(BaseModel):
+    chunking: AxisVerdict
+    retrieval: AxisVerdict | None = None  # only when retrievers were compared
+
+
 class EvalReport(BaseModel):
     schema_version: str = "1.5"  # public JSON contract; see docs/schema.md
     corpus_summary: dict = Field(default_factory=dict)
     strategy_results: list[StrategyResult] = Field(default_factory=list)  # ranked best-first
     recommendation: str = ""
+    verdict: Verdict | None = None  # the recommendation, structured; None before 1.5
     warnings: list[str] = Field(default_factory=list)
     generated_at: str = ""
     viz: dict | None = None  # chunk-boundary visualization for a sample document
