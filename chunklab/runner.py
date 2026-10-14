@@ -395,6 +395,11 @@ def run_evaluation(
     # strategy's turn came, after the documents and the model had loaded.
     from chunklab.chunkers.registry import check_strategy_params
 
+    if not config.strategies:
+        raise InputError(
+            "no strategies to evaluate: the config lists none. Leave 'strategies' out to "
+            "compare the default five, or name at least one"
+        )
     for strategy in config.strategies:
         check_strategy_params(strategy.name, strategy.params)
 
