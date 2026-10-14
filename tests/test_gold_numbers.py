@@ -194,3 +194,42 @@ def test_validate_and_scoring_agree(snippet, passage):
     report = _validate(snippet, passage)
 
     assert report.ok == snippet_in_text(snippet, passage)
+
+
+# --- the edge of a chunk ----------------------------------------------------------------
+
+#: A long answer whose first and last clauses carry numbers.
+EDGE_ANSWER = (
+    "If within one (1) year from the date of completion any defect arises, "
+    "the supplier shall repair it at its own cost and without delay, keep the buyer "
+    "informed of the progress of every repair, replace any part that cannot be repaired, "
+    "and refund the price of any part it cannot replace within thirty (30) days."
+)
+
+
+def test_a_number_beyond_the_start_of_the_chunk_is_not_held_against_it():
+    """The chunker cut the answer: its first clause, with the "(1)", is in the chunk
+    before. Missing is not different, and the snippet without that number scored
+    as found at this similarity in 0.4.1: digits must not decide how a split answer
+    is treated."""
+    cut = EDGE_ANSWER.index("year from")
+    chunk = EDGE_ANSWER[cut:] + " Nothing in this clause limits any other remedy."
+    assert fuzz.partial_ratio(normalize(EDGE_ANSWER), normalize(chunk)) >= 90
+
+    assert snippet_in_text(EDGE_ANSWER, chunk)
+
+
+def test_a_number_beyond_the_end_of_the_chunk_is_not_held_against_it():
+    chunk = "Clause 9. Warranty. " + EDGE_ANSWER[: EDGE_ANSWER.index("thirty")]
+    assert fuzz.partial_ratio(normalize(EDGE_ANSWER), normalize(chunk)) >= 90
+
+    assert snippet_in_text(EDGE_ANSWER, chunk)
+
+
+def test_a_different_number_at_the_edge_of_the_chunk_still_fails():
+    """At the edge, a number the chunk has is a number the chunk states."""
+    snippet = "14 days after the invoice date, unless the buyer disputes it in writing"
+    chunk = "30 days after the invoice date, unless the buyer disputes it in writing. More."
+    assert fuzz.partial_ratio(normalize(snippet), normalize(chunk)) >= 90
+
+    assert not snippet_in_text(snippet, chunk)
