@@ -1,5 +1,6 @@
 """Map file extensions to loaders, and load documents from paths."""
 
+from collections import Counter
 from pathlib import Path
 
 from chunklab.errors import DocumentLoadError, InputError, InputNotFoundError
@@ -54,12 +55,38 @@ def describe_skipped(skipped: list[Path], root: str | Path) -> str:
     )
 
 
+def _unique_ids(documents: list[Document], files: list[Path], root: Path) -> list[Document]:
+    """Give every document an id of its own.
+
+    A document is known by its file name without the extension, so `2023/msa.md`
+    and `2024/msa.md` were both `msa`, and their chunks shared ids. Only files
+    whose names collide are renamed, to their path under the scanned folder:
+    a corpus without a collision keeps its ids and its `corpus_sha256`.
+    """
+    ids = [d.id for d in documents]
+    paths = [f.relative_to(root).as_posix() for f in files]
+    # Paths are unique, so this ends; a second round is needed only when a stem
+    # equals another file's path (`x.md.txt` next to a renamed `x.md`).
+    while True:
+        counts = Counter(ids)
+        clashing = [i for i, doc_id in enumerate(ids) if counts[doc_id] > 1 and doc_id != paths[i]]
+        if not clashing:
+            break
+        for i in clashing:
+            ids[i] = paths[i]
+    return [
+        d if d.id == doc_id else d.model_copy(update={"id": doc_id})
+        for d, doc_id in zip(documents, ids, strict=True)
+    ]
+
+
 def load_documents(docs_path: str | Path, skipped: list[Path] | None = None) -> list[Document]:
     """Load a single file or every supported file in a directory (recursive).
 
     A directory scan leaves out hidden files and folders and office lock files,
     and appends each one to `skipped` when a list is given, so the caller can say
-    so. A file named explicitly is always loaded.
+    so. A file named explicitly is always loaded. Files that share a name are
+    told apart by their path under the folder.
     """
     path = Path(docs_path)
     left_out: list[Path] = []
@@ -88,4 +115,4 @@ def load_documents(docs_path: str | Path, skipped: list[Path] | None = None) -> 
             documents.append(get_loader(file.suffix).load(file))
         except Exception as exc:  # a raw parser traceback does not name the file
             raise DocumentLoadError(f"could not read {file}: {type(exc).__name__}: {exc}") from exc
-    return documents
+    return _unique_ids(documents, files, path if path.is_dir() else path.parent)

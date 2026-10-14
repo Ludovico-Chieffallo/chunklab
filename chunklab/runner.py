@@ -1,6 +1,7 @@
 """Orchestrates the full evaluation pipeline (spec §3.3)."""
 
 import hashlib
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -391,6 +392,16 @@ def run_evaluation(
 
     for strategy in config.strategies:
         check_strategy_params(strategy.name, strategy.params)
+
+    # `load_documents` makes ids unique; documents built in code have to be. Two
+    # with one id share chunk ids, which hybrid retrieval fuses into one result,
+    # and the runner would read only one of them for chunk health and adjacency.
+    shared = sorted(doc_id for doc_id, n in Counter(d.id for d in documents).items() if n > 1)
+    if shared:
+        raise InputError(
+            f"{len(shared)} document id(s) are used by more than one document "
+            f"({', '.join(repr(i) for i in shared[:5])}); every document needs an id of its own"
+        )
 
     empty = [d.id for d in documents if not d.text.strip()]
     if empty and len(empty) == len(documents):
