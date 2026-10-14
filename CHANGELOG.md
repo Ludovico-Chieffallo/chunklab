@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **`run` and `check` check the question set first, and stop on an error.** A gold
+  snippet that is not in the corpus scores zero for every strategy, and nothing said
+  so: with one such snippet in two questions, every cell read 0.50 recall and the
+  report carried no warning. Only `chunklab validate` caught it, and nobody has to run
+  that. The same checks now run before the embedding model loads. Errors are listed
+  as `validate` lists them, and the command exits 2 without writing a report or a
+  baseline. `--skip-validation` (and `skip_validation=True` in `evaluate`) scores the
+  set as it is. Warnings do not stop a run.
+
 ### Fixed
 - **Two files with the same name are two documents. Scores can move** on a corpus
   that had such a pair. A document's id was its file name without the extension, so

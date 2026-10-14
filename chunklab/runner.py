@@ -12,7 +12,7 @@ from chunklab.chunkers.registry import make_chunker
 from chunklab.config import Config, default_config, load_questions
 from chunklab.diagnostics.chunk_health import compute_chunk_health
 from chunklab.embeddings.registry import make_embedder
-from chunklab.errors import InputError
+from chunklab.errors import InputError, InvalidQuestionSet
 from chunklab.eval import metrics as m
 from chunklab.eval.gold_match import score_question, variants
 from chunklab.eval.significance import bootstrap_mean_ci
@@ -377,11 +377,16 @@ def run_evaluation(
     questions: list[Question],
     config: Config,
     on_progress: Callable[[str], None] | None = None,
+    skip_validation: bool = False,
 ) -> EvalReport:
     """Evaluate every configured strategy.
 
     `on_progress` receives a short human-readable status for each step; the
     embedding pass dominates the runtime, so silence there reads as a hang.
+
+    The question set is checked against the documents first, as `chunklab
+    validate` does, and an error raises `InvalidQuestionSet` before the embedding
+    model loads. `skip_validation=True` scores the set as it is.
     """
     report_progress = on_progress or (lambda _message: None)
     warnings: list[str] = []
@@ -503,6 +508,20 @@ def run_evaluation(
             f"{unreviewed} scored question(s) are marked 'reviewed: false' (machine-drafted "
             "and not yet checked); results are only as good as the questions behind them."
         )
+
+    # A snippet missing from the corpus scores zero for every strategy, and that
+    # looks like a chunking result. `validate` catches it, but nobody has to run
+    # it: with one bad snippet in two questions, every cell read 0.50 recall and
+    # nothing said why.
+    if not skip_validation:
+        from chunklab.validation import validate_questions
+
+        report_progress("Checking the question set against the documents")
+        checked = validate_questions(
+            questions, documents, fuzzy_threshold=config.eval.fuzzy_threshold
+        )
+        if checked.errors:
+            raise InvalidQuestionSet(checked.errors)
 
     report_progress(f"Loading embedding model {config.embedding.model}")
     embedder = make_embedder(
@@ -638,12 +657,14 @@ def evaluate(
     questions: str | Path | list[Question],
     config: Config | str | Path | None = None,
     on_progress: Callable[[str], None] | None = None,
+    skip_validation: bool = False,
 ) -> EvalReport:
     """Public API: evaluate chunking strategies over documents and questions.
 
     `docs` is a path (file or directory) or a list of Documents; `questions` is
     a YAML path or a list of Questions; `config` is a Config, a YAML path, or
-    None for defaults.
+    None for defaults. A question set with errors raises `InvalidQuestionSet`
+    unless `skip_validation` is set.
     """
     skipped: list[Path] = []
     docs_root = None
@@ -658,7 +679,9 @@ def evaluate(
         from chunklab.config import load_config
 
         config = load_config(config)
-    report = run_evaluation(docs, questions, config, on_progress=on_progress)
+    report = run_evaluation(
+        docs, questions, config, on_progress=on_progress, skip_validation=skip_validation
+    )
     if skipped:
         from chunklab.loaders.registry import describe_skipped
 

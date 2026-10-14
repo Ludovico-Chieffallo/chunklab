@@ -83,7 +83,9 @@ ERROR q1 (not_found): gold snippet not found in the corpus (closest match 81%):
       '300 requests per minute on Starter, 1,200 on'
 ```
 
-It exits non-zero on errors, so it works as a CI gate on the question set itself.
+It exits non-zero on errors, so it works as a CI gate on the question set itself. `run`
+makes the same check before it embeds anything and stops on an error, with the same list;
+`--skip-validation` scores the set as it is.
 
 ## 4. Run and read the report
 

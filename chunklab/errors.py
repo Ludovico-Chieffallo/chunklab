@@ -22,6 +22,24 @@ class InputNotFoundError(InputError, FileNotFoundError):
     """
 
 
+class InvalidQuestionSet(InputError):
+    """The question set has errors that `chunklab validate` reports.
+
+    Scored as it is, a run would measure those mistakes instead of the chunking:
+    a snippet missing from the corpus scores zero for every strategy. `errors`
+    holds the issues, for a caller that wants to show them all.
+    """
+
+    def __init__(self, errors: list) -> None:
+        self.errors = errors
+        first = errors[0]
+        more = f", and {len(errors) - 1} more" if len(errors) > 1 else ""
+        super().__init__(
+            f"the question set has {len(errors)} error(s) - {first.question_id} "
+            f"({first.kind}): {first.message}{more}; 'chunklab validate' lists them all"
+        )
+
+
 class DocumentLoadError(RuntimeError):
     """A file could not be read, with the file named."""
 
