@@ -19,7 +19,9 @@ containment after whitespace/case normalization, or fuzzy containment above
 `eval.fuzzy_threshold`). Either way, every number in the snippet must appear in the
 passage as written and in the same order: fuzzy matching forgives a typo, never a
 different figure. "within 14 days" is not found in "within 30 days", and "5 business
-days" is not found in "15 business days".
+days" is not found in "15 business days". A chunk shorter than the snippet counts only
+when it is the whole snippet to within the same threshold, such as a table row that lost
+its closing `|`: a fragment of the answer is not the answer.
 
 ## The large-chunk bias, and the `balanced` ranking
 

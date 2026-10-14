@@ -23,6 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   offered the passage with the wrong figures as the verbatim text to paste. When the
   corpus holds a passage with the snippet's numbers as well, `validate` now points at
   that one, whichever is closer.
+- **A fragment of the gold snippet no longer counts as the snippet.** rapidfuzz looks
+  for the shorter string inside the longer one, so a chunk shorter than the snippet was
+  looked for inside the snippet, and any fragment of the answer scored 100. At the
+  default sizes no chunk is that short, and nothing moves on the bundled example or on
+  a 26-paper corpus. At `chunk_size: 24` on the bundled example, 15 of 63 hits were
+  fragments: the 42-character "are retried twice with exponential backoff" counted as
+  a 216-character answer. **Scores can move** for small chunk sizes and for
+  sentence-sized custom splitters, whose recall this inflated. A chunk shorter than the
+  snippet now counts only when it is the whole snippet to within the fuzzy threshold,
+  such as a table row that lost its closing `|`. An answer split across two such
+  chunks is now reported as split, where before each half counted as found.
 
 ## [0.4.1] - 2026-10-13
 
